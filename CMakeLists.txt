@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(ORB_SLAM3)
 
 IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release)
+  SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
@@ -44,14 +44,23 @@ endif()
 MESSAGE("OPENCV VERSION:")
 MESSAGE(${OpenCV_VERSION})
 
+set( Sophus_DIR  /home/wxm/Documents/code/rpg_svo/svo/thirdparty/Sophus/build)
+FIND_PACKAGE(Sophus REQUIRED)
+MESSAGE("Sophus_INCLUDE_DIR:")
+MESSAGE(${Sophus_INCLUDE_DIR})
+
+
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
+FIND_PACKAGE(fast REQUIRED)
 
 include_directories(
+${Sophus_INCLUDE_DIR}
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${PROJECT_SOURCE_DIR}/include/CameraModels
 ${EIGEN3_INCLUDE_DIR}
+${fast_INCLUDE_DIRS}
 ${Pangolin_INCLUDE_DIRS}
 )
 
@@ -84,6 +93,11 @@ src/CameraModels/Pinhole.cpp
 src/CameraModels/KannalaBrandt8.cpp
 src/OptimizableTypes.cpp
 src/MLPnPsolver.cpp
+src/TwoViewReconstruction.cc
+src/sparse_img_align.cpp
+src/robust_cost.cpp
+src/IterativeMatcher.cc
+src/feature_alignment.cpp
 include/System.h
 include/Tracking.h
 include/LocalMapping.h
@@ -112,13 +126,19 @@ include/CameraModels/KannalaBrandt8.h
 include/OptimizableTypes.h
 include/MLPnPsolver.h
 include/TwoViewReconstruction.h
-src/TwoViewReconstruction.cc)
+include/sparse_img_align.h
+include/feature.h
+include/feature_alignment.h
+include/IterativeMatcher.h
+)
 
 add_subdirectory(Thirdparty/g2o)
 
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
+${Sophus_LIBRARIES}
 ${EIGEN3_LIBS}
+${fast_LIBRARIES}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
