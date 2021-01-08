@@ -43,11 +43,42 @@ namespace ORB_SLAM3
 
         // Search matches between Frame keypoints and projected MapPoints. Returns number of matches
         // Used to track the local map (Tracking)
-        int SearchByProjection(Frame &F, const std::vector<MapPoint *> &vpMapPoints, const float th = 3, const bool bFarPoints = false, const float thFarPoints = 50.0f);
+        // 和local map之间的projection
+        /**
+         * @brief 通过投影，对Local MapPoint进行跟踪
+         *
+         * 将Local MapPoint投影到当前帧中, 由此增加当前帧的MapPoints \n
+         * 在SearchLocalPoints()中已经将Local MapPoints重投影（isInFrustum()）到当前帧 \n
+         * 并标记了这些点是否在当前帧的视野中，即mbTrackInView \n
+         * 对这些MapPoints，在其投影点附近根据描述子距离选取匹配，以及最终的方向投票机制进行剔除
+         * @param  F           当前帧
+         * @param  vpMapPoints Local MapPoints
+         * @param  th          阈值，窗口的大小倍数
+         * @param checkLevel   是否检测金字塔的层数？(在类DSO提取算法中，只有第0层金字塔的特征点)
+         * @return             成功匹配的数量
+         * @see SearchLocalPoints() isInFrustum()
+         */
+        int SearchByProjection(Frame &F, const std::vector<MapPoint *> &vpMapPoints, const float th = 3, const bool bFarPoints = false, const float thFarPoints = 50.0f, bool checkLevel = true);
 
         // Project MapPoints tracked in last frame into the current frame and search matches.
         // Used to track from previous frame (Tracking)
-        int SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono);
+        // 和上一帧之间的projection
+        // @param[th] 窗口的大小
+        /**
+         * @brief 通过投影，对上一帧的特征点进行跟踪
+         *
+         * 上一帧中包含了MapPoints，对这些MapPoints进行tracking，由此增加当前帧的MapPoints \n
+         * 1. 将上一帧的MapPoints投影到当前帧(根据速度模型可以估计当前帧的Tcw)
+         * 2. 在投影点附近根据描述子距离选取匹配，以及最终的方向投票机制进行剔除
+         * @param  CurrentFrame 当前帧
+         * @param  LastFrame    上一帧
+         * @param  th           阈值
+         * @param  bMono        是否为单目
+         * @param  checkLevel   是否检查层数
+         * @return              成功匹配的数量
+         * @see SearchByBoW()
+         */
+        int SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono, bool checkLevel = true);
 
         // Project MapPoints seen in KeyFrame into the Frame and search matches.
         // Used in relocalisation (Tracking)
@@ -90,7 +121,7 @@ namespace ORB_SLAM3
         /************************************/
         // 直接法的匹配
         // 用直接法判断能否从在当前图像上找到某地图点的投影
-        // 这个函数经常会有误拒的情况，需要进一步检查。
+        // todo 这个函数经常会有误拒的情况，需要进一步检查。
         bool FindDirectProjection(KeyFrame *ref, Frame *curr, MapPoint *mp, Eigen::Vector2d &px_curr, int &search_level);
 
     public:
@@ -106,34 +137,28 @@ namespace ORB_SLAM3
 
         void ComputeThreeMaxima(std::vector<int> *histo, const int L, int &ind1, int &ind2, int &ind3);
 
+        //迭代光流匹配
+        /**
+         * @brief align a pixel with reference image patch
+         * @param[in] cur_img The current image
+         * @param[in] ref_patch_with_boarder the patch with boarder, used to compute the gradient (or FEJ)
+         * @param[in] ref_patch the patch in reference frame, by default is 64x64
+         * @param[in] n_iter maximum iterations
+         * @param[out] cur_px_estimate the estimated position in current image, must have an initial value
+         * @return True if successful
+        */
+        bool Align2D(const cv::Mat &cur_img, uint8_t *ref_patch_with_border, uint8_t *ref_patch, const int n_iter, Eigen::Vector2d &cur_px_estimate, bool no_simd);
+
         // 计算affine wrap矩阵
-        void GetWarpAffineMatrix(
-            KeyFrame *ref,
-            Frame *curr,
-            const Eigen::Vector2d &px_ref,
-            MapPoint *mp,
-            int level,
-            const Sophus::SE3 &TCR,
-            Eigen::Matrix2d &ACR);
+        void GetWarpAffineMatrix(KeyFrame *ref, Frame *curr, const Eigen::Vector2d &px_ref, MapPoint *mp, int level, const Sophus::SE3 &TCR, Eigen::Matrix2d &ACR);
 
         // perform affine warp
-        void WarpAffine(
-            const Eigen::Matrix2d &ACR,
-            const cv::Mat &img_ref,
-            const Eigen::Vector2d &px_ref,
-            const int &level_ref,
-            const KeyFrame *ref,
-            const int &search_level,
-            const int &half_patch_size,
-            uint8_t *patch);
+        void WarpAffine(const Eigen::Matrix2d &ACR, const cv::Mat &img_ref, const Eigen::Vector2d &px_ref, const int &level_ref, const KeyFrame *ref, const int &search_level, const int &half_patch_size, uint8_t *patch);
 
         // 计算最好的金字塔层数
         // 选择一个分辨率，使得warp不要太大
         // ORB每层金字塔默认是1.2倍缩放，所以每缩小一层是1.2*1.2=1.44,取倒数为0.694444444444
-        inline int GetBestSearchLevel(
-            const Eigen::Matrix2d &ACR,
-            const int &max_level,
-            const KeyFrame *ref)
+        inline int GetBestSearchLevel(const Eigen::Matrix2d &ACR, const int &max_level, const KeyFrame *ref)
         {
             int search_level = 0;
             float D = ACR.determinant();
@@ -146,8 +171,7 @@ namespace ORB_SLAM3
         }
 
         // 双线性插值
-        inline uchar GetBilateralInterpUchar(
-            const double &x, const double &y, const cv::Mat &gray)
+        inline uchar GetBilateralInterpUchar(const double &x, const double &y, const cv::Mat &gray)
         {
             const double xx = x - floor(x);
             const double yy = y - floor(y);

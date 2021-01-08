@@ -38,8 +38,6 @@ namespace ORB_SLAM3
     bool TwoViewReconstruction::Reconstruct(const std::vector<cv::KeyPoint> &vKeys1, const std::vector<cv::KeyPoint> &vKeys2, const vector<int> &vMatches12,
                                             cv::Mat &R21, cv::Mat &t21, vector<cv::Point3f> &vP3D, vector<bool> &vbTriangulated)
     {
-        std::cout << "TwoViewReconstruction::Reconstruct===========　 == " << std::endl;
-
         mvKeys1.clear();
         mvKeys2.clear();
 

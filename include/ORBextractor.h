@@ -167,26 +167,17 @@ namespace ORB_SLAM3
         double scaleFactor;
         int nFeaturePyrlevels;
         int nImgPyrlevel;
-        int mGridSize;
+        int mGridSize; //特征点网格化
         int iniThFAST;
         int minThFAST;
 
         std::vector<int> mnFeaturesPerLevel;
-
         std::vector<int> umax;
 
         std::vector<float> mvScaleFactor;
         std::vector<float> mvInvScaleFactor;
         std::vector<float> mvLevelSigma2;
         std::vector<float> mvInvLevelSigma2;
-
-        // grid fast
-        /// 注意这里网格大小对特征重复性影响非常明显，一定不要调得太大！
-        /// 特征重复性会直接影响到新地图点的生成。在5的时候可以生成大约100+个点，10的时候就只有20-50个点了,20时一般为个位数
-        /// 然而网格太小则使得地图点过多，影响性能
-        int mnGridCols = 0;
-        int mnGridRows = 0;
-        std::vector<bool> mvbGridOccupancy;
     };
 
 } // namespace ORB_SLAM3

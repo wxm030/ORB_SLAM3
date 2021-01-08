@@ -41,7 +41,7 @@ namespace ORB_SLAM3
     {
     }
 
-    int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint *> &vpMapPoints, const float th, const bool bFarPoints, const float thFarPoints)
+    int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint *> &vpMapPoints, const float th, const bool bFarPoints, const float thFarPoints, bool checkLevel)
     {
         int nmatches = 0, left = 0, right = 0;
 
@@ -69,9 +69,15 @@ namespace ORB_SLAM3
                 if (bFactor)
                     r *= th;
 
-                const vector<size_t> vIndices =
-                    F.GetFeaturesInArea(pMP->mTrackProjX, pMP->mTrackProjY, r * F.mvScaleFactors[nPredictedLevel], nPredictedLevel - 1, nPredictedLevel);
-
+                vector<size_t> vIndices;
+                if (checkLevel)
+                    vIndices = F.GetFeaturesInArea(pMP->mTrackProjX, pMP->mTrackProjY,
+                                                   r * F.mvScaleFactors[nPredictedLevel],
+                                                   nPredictedLevel - 1, nPredictedLevel);
+                else
+                    vIndices = F.GetFeaturesInArea(pMP->mTrackProjX, pMP->mTrackProjY,
+                                                   r * F.mvScaleFactors[nPredictedLevel],
+                                                   -1, -1);
                 if (!vIndices.empty())
                 {
                     const cv::Mat MPdescriptor = pMP->GetDescriptor();
@@ -1964,7 +1970,7 @@ namespace ORB_SLAM3
         return nFound;
     }
 
-    int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
+    int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono, bool checkLevel)
     {
         int nmatches = 0;
 
@@ -2020,7 +2026,9 @@ namespace ORB_SLAM3
 
                     vector<size_t> vIndices2;
 
-                    if (bForward)
+                    if (checkLevel == false)
+                        vIndices2 = CurrentFrame.GetFeaturesInArea(uv.x, uv.y, radius);
+                    else if (bForward)
                         vIndices2 = CurrentFrame.GetFeaturesInArea(uv.x, uv.y, radius, nLastOctave);
                     else if (bBackward)
                         vIndices2 = CurrentFrame.GetFeaturesInArea(uv.x, uv.y, radius, 0, nLastOctave);
@@ -2425,7 +2433,7 @@ namespace ORB_SLAM3
         }
     }
 
-    bool Align2D(
+    bool ORBmatcher::Align2D(
         const cv::Mat &cur_img,
         uint8_t *ref_patch_with_border,
         uint8_t *ref_patch,
@@ -2555,7 +2563,6 @@ namespace ORB_SLAM3
             for (int x = 0; x < WarpPatchSize; ++x)
                 ref_patch_ptr[x] = ref_patch_border_ptr[x];
         }
-        std::cout << "search_level_   1111111111111111 == " << search_level << "," << kp.octave << "," << ref->mnFrameId << std::endl;
 
         Eigen::Vector2d px_scaled = px_curr * curr->mvInvScaleFactors[search_level];
         bool success = Align2D(curr->mvImagePyramid[search_level], _patch_with_border, _patch, 10, px_scaled, false);

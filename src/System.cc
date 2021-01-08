@@ -36,6 +36,13 @@ namespace ORB_SLAM3
 
     Verbose::eLevel Verbose::th = Verbose::VERBOSITY_NORMAL;
 
+    bool has_suffix(
+        const std::string &str, const std::string &suffix)
+    {
+        std::size_t index = str.find(suffix, str.size() - suffix.size());
+        return (index != std::string::npos);
+    }
+
     System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
                    const bool bUseViewer, const int initFr, const string &strSequence, const string &strLoadingFile) : mSensor(sensor), mpViewer(static_cast<Viewer *>(NULL)), mbReset(false), mbResetActiveMap(false),
                                                                                                                        mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false)
@@ -75,10 +82,16 @@ namespace ORB_SLAM3
         //----
         //Load ORB Vocabulary
         cout << endl
-             << "Loading ORB Vocabulary. This could take a while..." << endl;
-
+             << "Loading ORB Vocabulary. This should be fast ..." << endl;
         mpVocabulary = new ORBVocabulary();
-        bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+        bool bVocLoad = false; // chose loading method based on file extension
+        if (has_suffix(strVocFile, ".txt"))
+            bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+        else if (has_suffix(strVocFile, ".bin"))
+            bVocLoad = mpVocabulary->loadFromBinaryFile(strVocFile);
+        else
+            bVocLoad = false;
+
         if (!bVocLoad)
         {
             cerr << "Wrong path to vocabulary. " << endl;
@@ -92,75 +105,7 @@ namespace ORB_SLAM3
         mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
 
         //Create the Atlas
-        //mpMap = new Map();
         mpAtlas = new Atlas(0);
-        //----
-
-        /*if(strLoadingFile.empty())
-    {
-        //Load ORB Vocabulary
-        cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
-
-        mpVocabulary = new ORBVocabulary();
-        bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
-        if(!bVocLoad)
-        {
-            cerr << "Wrong path to vocabulary. " << endl;
-            cerr << "Falied to open at: " << strVocFile << endl;
-            exit(-1);
-        }
-        cout << "Vocabulary loaded!" << endl << endl;
-
-        //Create KeyFrame Database
-        mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
-
-        //Create the Atlas
-        //mpMap = new Map();
-        mpAtlas = new Atlas(0);
-    }
-    else
-    {
-        //Load ORB Vocabulary
-        cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
-
-        mpVocabulary = new ORBVocabulary();
-        bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
-        if(!bVocLoad)
-        {
-            cerr << "Wrong path to vocabulary. " << endl;
-            cerr << "Falied to open at: " << strVocFile << endl;
-            exit(-1);
-        }
-        cout << "Vocabulary loaded!" << endl << endl;
-
-        cout << "Load File" << endl;
-
-        // Load the file with an earlier session
-        //clock_t start = clock();
-        bool isRead = LoadAtlas(strLoadingFile,BINARY_FILE);
-
-        if(!isRead)
-        {
-            cout << "Error to load the file, please try with other session file or vocabulary file" << endl;
-            exit(-1);
-        }
-        mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
-
-        mpAtlas->SetKeyFrameDababase(mpKeyFrameDatabase);
-        mpAtlas->SetORBVocabulary(mpVocabulary);
-        mpAtlas->PostLoad();
-        //cout << "KF in DB: " << mpKeyFrameDatabase->mnNumKFs << "; words: " << mpKeyFrameDatabase->mnNumWords << endl;
-
-        loadedAtlas = true;
-
-        mpAtlas->CreateNewMap();
-
-        //clock_t timeElapsed = clock() - start;
-        //unsigned msElapsed = timeElapsed / (CLOCKS_PER_SEC / 1000);
-        //cout << "Binary file read in " << msElapsed << " ms" << endl;
-
-        //usleep(10*1000*1000);
-    }*/
 
         if (mSensor == IMU_STEREO || mSensor == IMU_MONOCULAR)
             mpAtlas->SetInertialSensor();
@@ -272,8 +217,6 @@ namespace ORB_SLAM3
 
         // std::cout << "start GrabImageStereo" << std::endl;
         cv::Mat Tcw = mpTracker->GrabImageStereo(imLeft, imRight, timestamp, filename);
-
-        // std::cout << "out grabber" << std::endl;
 
         unique_lock<mutex> lock2(mMutexState);
         mTrackingState = mpTracker->mState;
@@ -401,7 +344,7 @@ namespace ORB_SLAM3
         mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
 
         return Tcw;
-    } // namespace ORB_SLAM3
+    }
 
     void System::ActivateLocalizationMode()
     {
@@ -568,14 +511,8 @@ namespace ORB_SLAM3
 
     void System::SaveTrajectoryEuRoC(const string &filename)
     {
-
         cout << endl
              << "Saving trajectory to " << filename << " ..." << endl;
-        /*if(mSensor==MONOCULAR)
-    {
-        cerr << "ERROR: SaveTrajectoryEuRoC cannot be used for monocular." << endl;
-        return;
-    }*/
 
         vector<Map *> vpMaps = mpAtlas->GetAllMaps();
         Map *pBiggerMap;
@@ -615,11 +552,6 @@ namespace ORB_SLAM3
         list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
         list<bool>::iterator lbL = mpTracker->mlbLost.begin();
 
-        //cout << "size mlpReferences: " << mpTracker->mlpReferences.size() << endl;
-        //cout << "size mlRelativeFramePoses: " << mpTracker->mlRelativeFramePoses.size() << endl;
-        //cout << "size mpTracker->mlFrameTimes: " << mpTracker->mlFrameTimes.size() << endl;
-        //cout << "size mpTracker->mlbLost: " << mpTracker->mlbLost.size() << endl;
-
         for (list<cv::Mat>::iterator lit = mpTracker->mlRelativeFramePoses.begin(),
                                      lend = mpTracker->mlRelativeFramePoses.end();
              lit != lend; lit++, lRit++, lT++, lbL++)
@@ -629,40 +561,25 @@ namespace ORB_SLAM3
                 continue;
 
             KeyFrame *pKF = *lRit;
-            //cout << "KF: " << pKF->mnId << endl;
 
             cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
-
-            /*cout << "2" << endl;
-        cout << "KF id: " << pKF->mnId << endl;*/
 
             // If the reference keyframe was culled, traverse the spanning tree to get a suitable keyframe.
             if (!pKF)
                 continue;
 
-            //cout << "2.5" << endl;
-
             while (pKF->isBad())
             {
-                //cout << " 2.bad" << endl;
                 Trw = Trw * pKF->mTcp;
                 pKF = pKF->GetParent();
-                //cout << "--Parent KF: " << pKF->mnId << endl;
             }
 
             if (!pKF || pKF->GetMap() != pBiggerMap)
             {
-                //cout << "--Parent KF is from another map" << endl;
-                /*if(pKF)
-                cout << "--Parent KF " << pKF->mnId << " is from another map " << pKF->GetMap()->GetId() << endl;*/
                 continue;
             }
 
-            //cout << "3" << endl;
-
             Trw = Trw * pKF->GetPose() * Twb; // Tcp*Tpw*Twb0=Tcb0 where b0 is the new world reference
-
-            // cout << "4" << endl;
 
             if (mSensor == IMU_MONOCULAR || mSensor == IMU_STEREO)
             {
@@ -680,10 +597,8 @@ namespace ORB_SLAM3
                 vector<float> q = Converter::toQuaternion(Rwc);
                 f << setprecision(6) << 1e9 * (*lT) << " " << setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
             }
-
-            // cout << "5" << endl;
         }
-        //cout << "end saving trajectory" << endl;
+
         f.close();
         cout << endl
              << "End of saving trajectory to " << filename << " ..." << endl;
@@ -718,8 +633,6 @@ namespace ORB_SLAM3
         for (size_t i = 0; i < vpKFs.size(); i++)
         {
             KeyFrame *pKF = vpKFs[i];
-
-            // pKF->SetPose(pKF->GetPose()*Two);
 
             if (pKF->isBad())
                 continue;

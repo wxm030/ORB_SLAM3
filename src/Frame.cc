@@ -480,7 +480,8 @@ namespace ORB_SLAM3
         {
             if (N > 0 && mbFeatureExtracted == false) // 没提特征然而有追踪点，来自直接法，提取新的fast特征点
             {
-                (*mpORBextractorLeft)(this, mvKeys, mDescriptors, ORBextractor::DSO_KEYPOINT);
+                (*mpORBextractorLeft)(this, mvKeys, mDescriptors, ORBextractor::FAST_KEYPOINT);
+                //(*mpORBextractorLeft)(this, mvKeys, mDescriptors, ORBextractor::DSO_KEYPOINT);
             }
             else
             {

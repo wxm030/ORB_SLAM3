@@ -34,14 +34,14 @@ namespace ORB_SLAM3
     eps_ = 0.000001;
   }
 
-  /*size_t*/ cv::Mat SparseImgAlign::run(Frame *ref_frame, Frame *cur_frame)
+  size_t SparseImgAlign::run(Frame *ref_frame, Frame *cur_frame, cv::Mat &TCR)
   {
     reset();
 
     if (ref_frame->mvKeysUn.size() == 0)
     {
       std::cout << "SparseImgAlign: no features to track!" << std::endl;
-      // return 0;
+      return 0;
     }
 
     ref_frame_ = ref_frame;
@@ -57,7 +57,6 @@ namespace ORB_SLAM3
       // check if reference with patch size is within image
       const float u_ref = ref_frame_->mvKeysUn[i].pt.x;
       const float v_ref = ref_frame_->mvKeysUn[i].pt.y;
-      // std::cout <<"ref_frame_  ===  i == "<< i <<","<< u_ref <<","<< v_ref << std::endl;
     }
 
     jacobian_cache_.resize(Eigen::NoChange, ref_patch_cache_.rows * patch_area_);
@@ -65,9 +64,9 @@ namespace ORB_SLAM3
 
     SE3 T_cur_from_ref = Converter::toSE3(cur_frame_->mTcw) * Converter::toSE3(ref_frame_->mTcw).inverse();
 
-    std::cout << "T_cur_from_ref: run  == !" << T_cur_from_ref << std::endl;
-    std::cout << "ref_frame_->mTcw  == !" << ref_frame_->mTcw << std::endl;
-    std::cout << "cur_frame_->mTcw  == !" << cur_frame_->mTcw << std::endl;
+    // std::cout << "T_cur_from_ref: run  == !" << T_cur_from_ref << std::endl;
+    // std::cout << "ref_frame_->mTcw  == !" << ref_frame_->mTcw << std::endl;
+    // std::cout << "cur_frame_->mTcw  == !" << cur_frame_->mTcw << std::endl;
     for (level_ = max_level_; level_ >= min_level_; --level_)
     {
       mu_ = 0.1;
@@ -77,11 +76,8 @@ namespace ORB_SLAM3
         printf("\nPYRAMID LEVEL %i\n---------------\n", level_);
       optimize(T_cur_from_ref);
     }
-    cur_frame_->mTcw = Converter::toCvMat(T_cur_from_ref * Converter::toSE3(ref_frame_->mTcw));
-
-    std::cout << "T_cur_from_ref: after  == !" << cur_frame_->mTcw << std::endl;
-    // return n_meas_ / patch_area_;
-    return cur_frame_->mTcw;
+    TCR = Converter::toCvMat(T_cur_from_ref);
+    return n_meas_ / patch_area_;
   }
 
   Matrix<double, 6, 6> SparseImgAlign::getFisherInformation()

@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 
             vTimesTrack[ni] = ttrack;
 
-            std::cout << "tracking time one frame === " << std::to_string(ttrack) << std::endl;
+            std::cout << "tracking time one frame ========================================================== " << std::to_string(ttrack) << std::endl;
             // // Wait to load the next frame
             // double T=0;
             // if(ni<nImages[seq]-1)

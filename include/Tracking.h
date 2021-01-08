@@ -44,11 +44,9 @@
 
 #include "math_utils.h"
 #include "sparse_img_align.h"
-#include "IterativeMatcher.h"
 
 namespace ORB_SLAM3
 {
-
     class Viewer;
     class FrameDrawer;
     class Atlas;
@@ -56,26 +54,8 @@ namespace ORB_SLAM3
     class LoopClosing;
     class System;
 
-    class PointSVO
-    {
-    public:
-        enum PointType
-        {
-            TYPE_DELETED,
-            TYPE_CANDIDATE,
-            TYPE_UNKNOWN,
-            TYPE_GOOD
-        };
-        MapPoint *mp;
-        PointType type_;           //!< Quality of the point.
-        int n_failed_reproj_;      //!< Number of failed reprojections. Used to assess the quality of the point.
-        int n_succeeded_reproj_;   //!< Number of succeeded reprojections. Used to assess the quality of the point.
-        int last_structure_optim_; //!< Timestamp of last point optimization
-    };
-
     class Tracking
     {
-
     public:
         Tracking(System *pSys, ORBVocabulary *pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Atlas *pAtlas,
                  KeyFrameDatabase *pKFDB, const string &strSettingPath, const int sensor, const string &_nameSeq = std::string());
@@ -120,11 +100,6 @@ namespace ORB_SLAM3
         void NewDataset();
         int GetNumberDataset();
         int GetMatchesInliers();
-
-        /////////////////////////////////////////////////////////////////////
-        bool set_anchor = false;
-        cv::Mat anchor_3d;
-        //////////////////////////////////////////////////////////////////////
 
     public:
         // Tracking states
@@ -190,7 +165,8 @@ namespace ORB_SLAM3
 
         bool mbWriteStats;
 
-        bool mUseDirectSVO; //use Direct method or ORB descriptor method th match in front end
+        int mUseDirectSVO; //use Direct method or ORB descriptor method th match in front end
+        int mnCacheHitTh;  // track local map direct cache 命中点的阈值
 
     protected:
         // Main tracking function. It is independent of the input sensor.
@@ -227,14 +203,9 @@ namespace ORB_SLAM3
 
         bool TrackLocalMap();
 
-        bool TrackLocalMapDirect();
-
         bool TrackLocalMapDirectXiang();
-        std::set<MapPoint *> mvpDirectMapPointsCache; // 缓存之前匹配到的地图点
-        int mnCacheHitTh = 150;                       // cache 命中点的阈值
         void SearchLocalPointsDirect();
-        std::vector<std::pair<KeyFrame *, std::tuple<int, int>>>
-        SelectNearestKeyframe(const std::map<KeyFrame *, std::tuple<int, int>> &observations, int n);
+        std::vector<std::pair<KeyFrame *, std::tuple<int, int>>> SelectNearestKeyframe(const std::map<KeyFrame *, std::tuple<int, int>> &observations, int n);
 
         bool TrackLocalMap_old();
         void SearchLocalPoints();
@@ -280,7 +251,6 @@ namespace ORB_SLAM3
 
         //ORB
         ORBextractor *mpORBextractorLeft, *mpORBextractorRight;
-        ORBextractor *mpIniORBextractor;
         //sparseImgAlign param
         int nKltMaxLevel;
         int nKltMinLevel;
@@ -297,6 +267,8 @@ namespace ORB_SLAM3
         KeyFrame *mpReferenceKF;
         std::vector<KeyFrame *> mvpLocalKeyFrames;
         std::vector<MapPoint *> mvpLocalMapPoints;
+        //for track local Map direct method
+        std::set<MapPoint *> mvpDirectMapPointsCache; // 缓存之前匹配到的地图点
 
         // System
         System *mpSystem;

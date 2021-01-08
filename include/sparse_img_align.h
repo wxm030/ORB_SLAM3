@@ -47,9 +47,7 @@ namespace ORB_SLAM3
         bool display,
         bool verbose);
 
-    cv::Mat run(
-        Frame *ref_frame,
-        Frame *cur_frame);
+    size_t run(Frame *ref_frame, Frame *cur_frame, cv::Mat &TCR);
 
     /// Return fisher information matrix, i.e. the Hessian of the log-likelihood
     /// at the converged state.

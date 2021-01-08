@@ -928,12 +928,11 @@ namespace ORB_SLAM3
     void ORBextractor::ComputeKeyPointsFast(
         vector<vector<cv::KeyPoint>> &allKeypoints, vector<cv::KeyPoint> &exist_kps)
     {
-        // NOTE (xiang) This function has a bug which may corrupt the program, don't call it until i fix it.
         // set grid
         std::cout << "Start extracting fast keypoints" << std::endl;
-        mnGridRows = ceil(static_cast<double>(mvImagePyramid[0].rows) / mGridSize);
-        mnGridCols = ceil(static_cast<double>(mvImagePyramid[0].cols) / mGridSize);
-        mvbGridOccupancy = vector<bool>(mnGridCols * mnGridRows, false);
+        int mnGridCols = ceil(static_cast<double>(mvImagePyramid[0].cols) / mGridSize);
+        int mnGridRows = ceil(static_cast<double>(mvImagePyramid[0].rows) / mGridSize);
+        std::vector<bool> mvbGridOccupancy = vector<bool>(mnGridCols * mnGridRows, false);
 
         for (const KeyPoint &kp : exist_kps)
         {
@@ -989,13 +988,6 @@ namespace ORB_SLAM3
                 const int gx = static_cast<int>((xy.x * scale) / mGridSize);
                 const size_t k = gy * mnGridCols + gx;
 
-                // std::cout << "xy === " << xy.y << "," << xy.x << std::endl;
-                // std::cout << "mGridSize === " << mGridSize << std::endl;
-                // std::cout << "mnGridCols === " << mnGridCols << std::endl;
-                // std::cout << "gy,gx = " << gy << "," << gx << std::endl;
-                // std::cout << "level = " << level << "," << scale << std::endl;
-                // std::cout << "mvbGridOccupancy.size()  = " << mvbGridOccupancy.size() << std::endl;
-                // std::cout << "mnGridCols * mnGridRows == " << mnGridCols << "," << mnGridRows << std::endl;
                 if (mvbGridOccupancy[k] == true) // 已经占据
                     continue;
 
@@ -1009,7 +1001,7 @@ namespace ORB_SLAM3
         }
         // Create feature for every corner that has high enough corner score
         std::for_each(corners.begin(), corners.end(), [&](Corner &c) {
-            if (c.score > 20)
+            if (c.score > iniThFAST)
             {
                 // insert this as a key point
                 cv::KeyPoint kp(cv::Point2f(c.x, c.y), c.size);
@@ -1404,10 +1396,20 @@ namespace ORB_SLAM3
 
         vector<vector<KeyPoint>> allKeypoints;
         // 注意这里keypoints的坐标还没有乘scale
-        if (method == DSO_KEYPOINT)
+        if (method == FAST_KEYPOINT)
         {
-            // multiple level DSO keypoints
-            // ComputeKeyPointsDSO( allKeypoints, frame->mvKeysUn );
+            if (leftEye == true)
+            {
+                ComputeKeyPointsFast(allKeypoints, frame->mvKeys);
+            }
+            else
+            {
+                vector<cv::KeyPoint> tmp;
+                ComputeKeyPointsFast(allKeypoints, tmp); // 右眼随便提
+            }
+        }
+        else if (method == DSO_KEYPOINT)
+        {
             vector<KeyPoint> kps;
             ComputeKeyPointsDSOSingleLevel(kps, frame->mvKeys);
             allKeypoints.resize(nImgPyrlevel);
@@ -1423,7 +1425,7 @@ namespace ORB_SLAM3
             nkeypoints += (int)allKeypoints[level].size();
         nkeypoints += _keypoints.size();
 
-        std::cout << "当前帧特征点共　" << nkeypoints << "已有的　　＝＝　" << frame->N << std::endl;
+        std::cout << "Extract feature point  total: " << nkeypoints << "  already have: " << frame->N << std::endl;
         Mat descriptors;
         if (nkeypoints == 0)
             _descriptors.release();

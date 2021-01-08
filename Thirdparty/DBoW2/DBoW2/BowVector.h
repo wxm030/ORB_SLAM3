@@ -14,8 +14,7 @@
 #include <map>
 #include <vector>
 
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/map.hpp>
+#include "../DUtils/config.h"
 
 namespace DBoW2 {
 
@@ -29,23 +28,23 @@ typedef double WordValue;
 typedef unsigned int NodeId;
 
 /// L-norms for normalization
-enum LNorm
+EXPORT typedef enum LNorm
 {
   L1,
   L2
-};
+} LNorm;
 
 /// Weighting type
-enum WeightingType
+EXPORT typedef enum WeightingType
 {
   TF_IDF,
   TF,
   IDF,
   BINARY
-};
+} WeightingType;
 
 /// Scoring type
-enum ScoringType
+EXPORT typedef enum ScoringType
 {
   L1_NORM,
   L2_NORM,
@@ -53,19 +52,13 @@ enum ScoringType
   KL,
   BHATTACHARYYA,
   DOT_PRODUCT,
-};
+} ScoringType;
 
 /// Vector of words to represent images
-class BowVector: 
+/// stl的map结构，key为wordId，value为tfidf中的tf
+class EXPORT BowVector: 
 	public std::map<WordId, WordValue>
 {
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive& ar, const int version)
-    {
-        ar & boost::serialization::base_object<std::map<WordId, WordValue> >(*this);
-    }
-
 public:
 
 	/** 

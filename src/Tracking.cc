@@ -84,14 +84,8 @@ namespace ORB_SLAM3
 
         //Load other config parameters
         //默认采用原版的orb描述子匹配方法
-        if (!fSettings["UseDirectSVO"].empty() && fSettings["UseDirectSVO"].isReal())
-        {
-            mUseDirectSVO = fSettings["UseDirectSVO"].real();
-        }
-        else
-        {
-            mUseDirectSVO = false;
-        }
+        mUseDirectSVO = fSettings["UseDirectSVO"];
+        std::cout << "mUseDirectSVO: " << mUseDirectSVO << std::endl;
 
         //Rectification parameters
         /*mbNeedRectify = false;
@@ -773,6 +767,17 @@ namespace ORB_SLAM3
             b_miss_params = true;
         }
 
+        node = fSettings["ORBextractor.mnCacheHitTh"];
+        if (!node.empty() && node.isInt())
+        {
+            mnCacheHitTh = node.operator int();
+        }
+        else
+        {
+            std::cerr << "*ORBextractor.mnCacheHitTh parameter doesn't exist or is not an integer*" << std::endl;
+            b_miss_params = true;
+        }
+
         node = fSettings["ORBextractor.iniThFAST"];
         if (!node.empty() && node.isInt())
         {
@@ -805,9 +810,6 @@ namespace ORB_SLAM3
 
         if (mSensor == System::STEREO || mSensor == System::IMU_STEREO)
             mpORBextractorRight = new ORBextractor(nFeatures, fScaleFactor, nPyrLevels, std::max(nPyrLevels, nKltMaxLevel + 1), mGridSize, fIniThFAST, fMinThFAST);
-
-        if (mSensor == System::MONOCULAR || mSensor == System::IMU_MONOCULAR)
-            mpIniORBextractor = new ORBextractor(2 * nFeatures, fScaleFactor, nPyrLevels, std::max(nPyrLevels, nKltMaxLevel + 1), mGridSize, fIniThFAST, fMinThFAST);
 
         cout << endl
              << "ORB Extractor Parameters: " << endl;
@@ -1091,19 +1093,12 @@ namespace ORB_SLAM3
 
         if (mSensor == System::MONOCULAR)
         {
-            if (mState == NOT_INITIALIZED || mState == NO_IMAGES_YET || (lastID - initID) < mMaxFrames)
-                mCurrentFrame = Frame(mImGray, timestamp, mpIniORBextractor, mpORBVocabulary, mpCamera, mDistCoef, mbf, mThDepth);
-            else
-                mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, mpORBVocabulary, mpCamera, mDistCoef, mbf, mThDepth);
+            mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, mpORBVocabulary, mpCamera, mDistCoef, mbf, mThDepth);
         }
         else if (mSensor == System::IMU_MONOCULAR)
         {
-            if (mState == NOT_INITIALIZED || mState == NO_IMAGES_YET)
-            {
-                mCurrentFrame = Frame(mImGray, timestamp, mpIniORBextractor, mpORBVocabulary, mpCamera, mDistCoef, mbf, mThDepth, &mLastFrame, *mpImuCalib);
-            }
-            else
-                mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, mpORBVocabulary, mpCamera, mDistCoef, mbf, mThDepth, &mLastFrame, *mpImuCalib);
+
+            mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, mpORBVocabulary, mpCamera, mDistCoef, mbf, mThDepth, &mLastFrame, *mpImuCalib);
         }
 
         if (mState == NO_IMAGES_YET)
@@ -1526,8 +1521,14 @@ namespace ORB_SLAM3
                 StereoInitialization();
             else
             {
-                // MonocularInitialization();
-                MonocularInitializationDirect();
+                if (mUseDirectSVO)
+                {
+                    MonocularInitializationDirect();
+                }
+                else
+                {
+                    MonocularInitialization();
+                }
             }
 
             mpFrameDrawer->Update(this);
@@ -1572,8 +1573,15 @@ namespace ORB_SLAM3
                     else
                     {
                         //Verbose::PrintMess("TRACK: Track with motion model", Verbose::VERBOSITY_DEBUG);
-                        bOK = TrackWithSparseImgAlign();
-                        // bOK = TrackWithMotionModel();
+                        if (mUseDirectSVO)
+                        {
+                            bOK = TrackWithSparseImgAlign();
+                        }
+                        else
+                        {
+                            bOK = TrackWithMotionModel();
+                        }
+
                         if (!bOK)
                         {
                             bOK = TrackReferenceKeyFrame();
@@ -1678,8 +1686,14 @@ namespace ORB_SLAM3
                         // In last frame we tracked enough MapPoints in the map
                         if (!mVelocity.empty())
                         {
-                            // bOK = TrackWithMotionModel();
-                            bOK = TrackWithSparseImgAlign();
+                            if (mUseDirectSVO)
+                            {
+                                bOK = TrackWithSparseImgAlign();
+                            }
+                            else
+                            {
+                                bOK = TrackWithMotionModel();
+                            }
                         }
                         else
                         {
@@ -1746,9 +1760,15 @@ namespace ORB_SLAM3
 #ifdef SAVE_TIMES
                     std::chrono::steady_clock::time_point time_StartTrackLocalMap = std::chrono::steady_clock::now();
 #endif
-                    // bOK = TrackLocalMap();
-                    bOK = TrackLocalMapDirect();
-                    // bOK = TrackLocalMapDirectXiang();
+                    if (mUseDirectSVO)
+                    {
+                        bOK = TrackLocalMapDirectXiang();
+                    }
+                    else
+                    {
+                        bOK = TrackLocalMap();
+                    }
+
 #ifdef SAVE_TIMES
                     std::chrono::steady_clock::time_point time_EndTrackLocalMap = std::chrono::steady_clock::now();
 
@@ -1767,9 +1787,14 @@ namespace ORB_SLAM3
                 // the camera we will use the local map again.
                 if (bOK && !mbVO)
                 {
-                    // bOK = TrackLocalMap();
-                    bOK = TrackLocalMapDirect();
-                    // bOK = TrackLocalMapDirectXiang();
+                    if (mUseDirectSVO)
+                    {
+                        bOK = TrackLocalMapDirectXiang();
+                    }
+                    else
+                    {
+                        bOK = TrackLocalMap();
+                    }
                 }
             }
 
@@ -1976,7 +2001,9 @@ namespace ORB_SLAM3
                 mCurrentFrame.SetImuPoseVelocity(Rwb0, twb0, cv::Mat::zeros(3, 1, CV_32F));
             }
             else
+            {
                 mCurrentFrame.SetPose(cv::Mat::eye(4, 4, CV_32F));
+            }
 
             // Create KeyFrame
             KeyFrame *pKFini = new KeyFrame(mCurrentFrame, mpAtlas->GetCurrentMap(), mpKeyFrameDB);
@@ -2059,7 +2086,8 @@ namespace ORB_SLAM3
     {
         //提取第一帧的特征点
         mCurrentFrame.ExtractFeatures();
-        std::cout << "11111  == " << mCurrentFrame.mvKeys.size() << "," << mCurrentFrame.mvImagePyramid.size() << "," << std::endl;
+#if 0 
+///////////////////////////////////////////////绘制第一帧的特征点
         cv::Mat img;
         cv::cvtColor(mCurrentFrame.mvImagePyramid[0], img, CV_GRAY2RGB);
         for (size_t i = 0; i < mCurrentFrame.mvKeys.size(); i++)
@@ -2070,15 +2098,14 @@ namespace ORB_SLAM3
             cv::circle(img, p, 2, cv::Scalar(0, 255, 0));
         }
         cv::imshow("first_img", img);
-        // cv::waitKey(0);
-
+        cv::waitKey(0);
+//////////////////////////////////////////////／／
+#endif
         // Set Reference Frame
         if (mCurrentFrame.mvKeys.size() > 100)
         {
             mInitialFrame = Frame(mCurrentFrame);
             mLastFrame = Frame(mCurrentFrame);
-            std::cout << "22222  == " << mInitialFrame.mvKeys.size() << std::endl;
-
             mvbPrevMatched.resize(mCurrentFrame.mvKeys.size());
             for (size_t i = 0; i < mCurrentFrame.mvKeys.size(); i++)
             {
@@ -2109,9 +2136,9 @@ namespace ORB_SLAM3
 
     bool Tracking::ProcessSecondFrame()
     {
-        std::cout << "start to calcOpticalFlowPyrLK " << std::endl;
-        std::cout << "mInitialFrame.img_  " << mInitialFrame.mvImagePyramid[0].empty() << "," << mCurrentFrame.mvImagePyramid[0].empty() << std::endl;
-        std::cout << "mInitialFrame.img_  " << mInitialFrame.mvImagePyramid.size() << "," << mCurrentFrame.mvImagePyramid[0].size() << std::endl;
+        // std::cout << "start to calcOpticalFlowPyrLK " << std::endl;
+        // std::cout << "mInitialFrame.img_  " << mInitialFrame.mvImagePyramid[0].empty() << "," << mCurrentFrame.mvImagePyramid[0].empty() << std::endl;
+        // std::cout << "mInitialFrame.img_  " << mInitialFrame.mvImagePyramid.size() << "," << mCurrentFrame.mvImagePyramid[0].size() << std::endl;
         std::vector<cv::Point2f> px_ref;
         px_ref.clear();
         std::vector<cv::Point2f> px_cur;
@@ -2129,10 +2156,9 @@ namespace ORB_SLAM3
             px_ref.push_back(p);
             px_cur.push_back(p);
             idx_ref.push_back(i);
-            //std::cout << "i = " << i << "," << idx_ref[num] << "p=" << p << "," << px_ref.size() << "," << px_cur.size() << "," << idx_ref.size() << "," << px_ref[num] << "," << px_cur[num] << std::endl;
             num++;
         }
-        std::cout << "before opticalFlow lk ==" << px_ref.size() << std::endl;
+        // std::cout << "before opticalFlow lk ==" << px_ref.size() << std::endl;
         const double klt_win_size = 30.0;
         const int klt_max_iter = 30;
         const double klt_eps = 0.001;
@@ -2156,7 +2182,6 @@ namespace ORB_SLAM3
         {
             if (!status[i])
             {
-                //std::cout << "bad   ===== " << idx_ref[i] << "," << px_cur_it->x << "," << px_cur_it->y << "------>" << px_ref_it->x << "," << px_ref_it->y << "," << bad << std::endl;
                 mInitialFrame.mvbOutlier[idx_ref[i]] = true;
                 ++px_ref_it;
                 ++px_cur_it;
@@ -2164,23 +2189,21 @@ namespace ORB_SLAM3
                 continue;
             }
             disparities.push_back(Vector2d(px_ref_it->x - px_cur_it->x, px_ref_it->y - px_cur_it->y).norm());
-            //std::cout << "optical flow point xy = " << px_cur_it->x << "," << px_cur_it->y << "------>" << px_ref_it->x << "," << px_ref_it->y << "," << bad << std::endl;
+
             ++px_ref_it;
             ++px_cur_it;
         }
 
-        double disparity = getMedian(disparities);
-        std::cout << "disparity == " << disparity << "," << disparities.size() << std::endl;
+        // double disparity = getMedian(disparities);
+        // std::cout << "disparity == " << disparity << "," << disparities.size() << std::endl;
         // if (disparity < 50)
         // {
         //     fill(mvIniMatches.begin(), mvIniMatches.end(), -1);
         //     return false;
         // }
-        //mvIniMatches
         std::vector<cv::DMatch> matches1to2;
         mvIniMatches = std::vector<int>(mInitialFrame.mvKeys.size(), -1);
         int nmatches = px_cur.size();
-        std::cout << "nmatches == " << nmatches << std::endl;
         mCurrentFrame.mvKeys.reserve(nmatches);
         int count = 0;
         for (size_t i = 0; i < px_cur.size(); i++)
@@ -2203,26 +2226,8 @@ namespace ORB_SLAM3
             matches1to2.push_back(m);
 
             count++;
-            // std::cout << " i==" << i << ",  idx_ref[i] ==" << idx_ref[i] << std::endl;
-            // std::cout << "p1-> p2　 == " << p1.pt << "," << p2.pt << std::endl;
         }
         mCurrentFrame.SetKeypoints();
-        std::cout << "光流匹配 mCurrentFrame　 == " << nmatches << "," << mCurrentFrame.mvKeysUn.size() << "," << mCurrentFrame.mvKeys.size() << std::endl;
-        std::cout << "光流匹配 mInitialFrame　 == " << nmatches << "," << mInitialFrame.mvKeysUn.size() << "," << mInitialFrame.mvKeys.size() << std::endl;
-        // {
-        //     /////////////////////////////绘制匹配及3D重投影结果////////////////////////////////
-        //     cv::Mat img_1, img_2;
-        //     cv::cvtColor(mInitialFrame.mvImagePyramid[0], img_1, CV_GRAY2RGB);
-        //     cv::cvtColor(mCurrentFrame.mvImagePyramid[0], img_2, CV_GRAY2RGB);
-        //     double fx = 493.899502203882;
-        //     double fy = 493.810934883376;
-        //     double cx = 318.692071563937;
-        //     double cy = 240.389706485301;
-        //     cv::Mat img_RR_matches;
-        //     std::cout << "matches1to2.size() == " << matches1to2.size() << std::endl;
-        //     cv::drawMatches(img_1, mInitialFrame.mvKeysUn, img_2, mCurrentFrame.mvKeysUn, matches1to2, img_RR_matches);
-        //     cv::imshow("光流匹配", img_RR_matches);
-        // }
 
         // Check if there are enough correspondences
         if (nmatches < 100)
@@ -2238,7 +2243,6 @@ namespace ORB_SLAM3
         std::vector<bool> vbTriangulated; // Triangulated Correspondences (mvIniMatches)
         if (mpCamera->ReconstructWithTwoViews(mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn, mvIniMatches, Rcw, tcw, mvIniP3D, vbTriangulated))
         {
-            std::cout << "mpCamera->ReconstructWithTwoViews " << std::endl;
             for (size_t i = 0, iend = mvIniMatches.size(); i < iend; i++)
             {
                 if (mvIniMatches[i] >= 0 && !vbTriangulated[i])
@@ -2263,17 +2267,14 @@ namespace ORB_SLAM3
             tcw.copyTo(Tcw.rowRange(0, 3).col(3));
             mCurrentFrame.SetPose(Tcw);
 
-            std::cout << "1111三角化　mInitialFrame == " << mInitialFrame.mTimeStamp << std::endl;
-            std::cout << "1111三角化　mCurrentFrame == " << mCurrentFrame.mTimeStamp << std::endl;
-            std::cout << "1111Tcw  == " << Tcw << std::endl;
-            std::cout << "3D size   == " << nmatches << std::endl;
             CreateInitialMapMonocular();
         }
         else
         {
             return false;
         }
-        /////////////////////////////绘制匹配及3D重投影结果////////////////////////////////
+/////////////////////////////绘制匹配及3D重投影结果////////////////////////////////
+#if 0
         cv::Mat img_1, img_2;
         cv::cvtColor(mInitialFrame.mvImagePyramid[0], img_1, CV_GRAY2RGB);
         cv::cvtColor(mCurrentFrame.mvImagePyramid[0], img_2, CV_GRAY2RGB);
@@ -2310,7 +2311,8 @@ namespace ORB_SLAM3
         }
         cv::imshow("loop match", img_RR_matches);
         cv::imshow("pnp_result", img_2);
-        //////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+#endif
         return true;
     }
 
@@ -2635,7 +2637,7 @@ namespace ORB_SLAM3
         //初始位姿可以用上一帧的位姿，也可以用速度模型估计，还可以用imu预积分估计当前帧的初始位姿
         // mCurrentFrame.SetPose(mLastFrame.mTcw);
         mCurrentFrame.SetPose(mVelocity * mLastFrame.mTcw);
-        std::cout << "mVelocity == " << mVelocity << "," << mLastFrame.mTcw << std::endl;
+        // std::cout << "mVelocity == " << mVelocity << "," << mLastFrame.mTcw << std::endl;
 
         // check if last frame have enough observations
         size_t inliers_in_last_frame = 0;
@@ -2652,17 +2654,15 @@ namespace ORB_SLAM3
 
         // sparse image align
         SparseImgAlign img_align(nKltMaxLevel, nKltMinLevel, 10, SparseImgAlign::GaussNewton, false, false);
-        cv::Mat Tmat = img_align.run(&mLastFrame, &mCurrentFrame);
-        // std::cout << "SparseImgAlign mCurrentFrame Tcw == " << mCurrentFrame.mTcw << std::endl;
-        // std::cout << "SparseImgAlign mLastFrame Tcw == " << mLastFrame.mTcw << std::endl;
-        // if (ret == false)
-        // {
-        //     std::cout << "Failed. return back to feature methods" << endl;
-        //     mCurrentFrame.SetPose(mLastFrame.mTcw);
-        //     return false;
-        // }
-        mCurrentFrame.SetPose(Tmat);
-
+        cv::Mat Tcr;
+        size_t ret = img_align.run(&mLastFrame, &mCurrentFrame, Tcr);
+        if (ret == false)
+        {
+            std::cout << "Failed. return back to feature methods" << endl;
+            mCurrentFrame.SetPose(mVelocity * mLastFrame.mTcw);
+            return false;
+        }
+        mCurrentFrame.SetPose(Tcr * mLastFrame.mTcw);
         return true;
     }
 
@@ -2750,9 +2750,9 @@ namespace ORB_SLAM3
         cv::Mat Tlr = mlRelativeFramePoses.back();
         mLastFrame.SetPose(Tlr * pRef->GetPose());
 
-        std::cout << "last keyframe pose == " << Tlr << "\n"
-                  << pRef->GetPose() << "\n"
-                  << mLastFrame.mTcw << std::endl;
+        // std::cout << "last keyframe pose == " << Tlr << "\n"
+        //           << pRef->GetPose() << "\n"
+        //           << mLastFrame.mTcw << std::endl;
 
         if (mnLastKeyFrameId == mLastFrame.mnId || mSensor == System::MONOCULAR || mSensor == System::IMU_MONOCULAR || !mbOnlyTracking)
             return;
@@ -2933,16 +2933,20 @@ namespace ORB_SLAM3
         // TOO check outliers before PO
         int aux1 = 0, aux2 = 0;
         for (int i = 0; i < mCurrentFrame.N; i++)
+        {
             if (mCurrentFrame.mvpMapPoints[i])
             {
                 aux1++;
                 if (mCurrentFrame.mvbOutlier[i])
                     aux2++;
             }
+        }
 
-        int inliers;
+        int inliers = 0;
         if (!mpAtlas->isImuInitialized())
+        {
             Optimizer::PoseOptimization(&mCurrentFrame);
+        }
         else
         {
             if (mCurrentFrame.mnId <= mnLastRelocFrameId + mnFramesToResetIMU)
@@ -2997,7 +3001,7 @@ namespace ORB_SLAM3
                     mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint *>(NULL);
             }
         }
-        std::cout << "当前帧的内点数目　＝＝　" << mnMatchesInliers << std::endl;
+        std::cout << "inlier in current frame : " << mnMatchesInliers << std::endl;
         UpdateLocalMap();
         // Decide if the tracking was succesful
         // More restrictive if there was a relocalization recently
@@ -3037,6 +3041,7 @@ namespace ORB_SLAM3
 
     bool Tracking::TrackLocalMapDirectXiang()
     {
+        mTrackedFr++;
         std::cout << "TrackLocalMapDirectXiang====" << std::to_string(mCurrentFrame.mTimeStamp) << std::endl;
         // project the local map points into current frame, then search with direct align
         // 这步把 local map points 投影至当前帧并确定其位置
@@ -3058,7 +3063,6 @@ namespace ORB_SLAM3
             }
             count2++;
         }
-        std::cout << "mvpLocalMapPoints  count1===count2 ====" << mvpLocalMapPoints.size() << "," << count1 << "," << count2 << std::endl;
 
         SearchLocalPointsDirect();
         UpdateLocalKeyFrames();
@@ -3082,8 +3086,6 @@ namespace ORB_SLAM3
                 }
             }
         }
-
-        std::cout << "before   aux1, aux2 ==  " << aux1 << "," << aux2 << std::endl;
 
         int inliers;
         if (!mpAtlas->isImuInitialized())
@@ -3121,7 +3123,6 @@ namespace ORB_SLAM3
                     aux2++;
             }
         }
-        std::cout << " 11111 track local map direct mState = " << mState << std::endl;
 
         mnMatchesInliers = 0;
 
@@ -3162,31 +3163,33 @@ namespace ORB_SLAM3
                 }
             }
         }
-        std::cout << "当前帧的内点数目　＝＝　" << mnMatchesInliers << std::endl;
+        std::cout << "Current frame inlier num: " << mnMatchesInliers << std::endl;
 
         // Decide if the tracking was succesful
         // More restrictive if there was a relocalization recently
         mpLocalMapper->mnMatchesInliers = mnMatchesInliers;
         if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && mnMatchesInliers < 50)
         {
+            mbDirectFailed = true;
             return false;
         }
 
         if ((mnMatchesInliers > 10) && (mState == RECENTLY_LOST))
         {
+            mbDirectFailed = false;
             return true;
         }
-
-        std::cout << " 11111 track local map direct mState = " << mState << std::endl;
 
         if (mSensor == System::IMU_MONOCULAR)
         {
             if (mnMatchesInliers < 15)
             {
+                mbDirectFailed = true;
                 return false;
             }
             else
             {
+                mbDirectFailed = false;
                 return true;
             }
         }
@@ -3194,10 +3197,12 @@ namespace ORB_SLAM3
         {
             if (mnMatchesInliers < 15)
             {
+                mbDirectFailed = true;
                 return false;
             }
             else
             {
+                mbDirectFailed = false;
                 return true;
             }
         }
@@ -3205,12 +3210,14 @@ namespace ORB_SLAM3
         {
             if (mnMatchesInliers < 30)
             {
+                mbDirectFailed = true;
                 std::cout << " failed track local map direct  ===  mnMatchesInliers = " << mnMatchesInliers << std::endl;
                 std::cout << "mCurrentFrame.N == " << mCurrentFrame.N << std::endl;
                 return false;
             }
             else
             {
+                mbDirectFailed = false;
                 return true;
             }
         }
@@ -3220,13 +3227,13 @@ namespace ORB_SLAM3
     {
         int cntSuccess = 0;
         // use grid to evaluate the coverage of feature points
-        const int grid_size = 5;
+        const int grid_size = mpORBextractorLeft->GetGridSize();
         const int grid_rows = mCurrentFrame.mvImagePyramid[0].rows / grid_size;
         const int grid_cols = mCurrentFrame.mvImagePyramid[0].cols / grid_size;
         vector<bool> grid(grid_rows * grid_cols, false);
 
         ORBmatcher matcher;
-        std::cout << "mvpDirectMapPointsCache before1111 === " << mvpDirectMapPointsCache.size() << "   mvpLocalMapPoints.size() = " << mvpLocalMapPoints.size() << std::endl;
+        //std::cout << "mvpDirectMapPointsCache before1111 === " << mvpDirectMapPointsCache.size() << "   mvpLocalMapPoints.size() = " << mvpLocalMapPoints.size() << std::endl;
         if (!mvpDirectMapPointsCache.empty())
         {
             // 缓存不空，则在缓存中搜索
@@ -3299,7 +3306,7 @@ namespace ORB_SLAM3
                 }
             }
         }
-        std::cout << "mvpDirectMapPointsCache after2222 === " << mvpDirectMapPointsCache.size() << "   mvpLocalMapPoints.size() = " << mvpLocalMapPoints.size() << std::endl;
+        //std::cout << "mvpDirectMapPointsCache after2222 === " << mvpDirectMapPointsCache.size() << "   mvpLocalMapPoints.size() = " << mvpLocalMapPoints.size() << std::endl;
         std::cout << "cntSuccess == " << cntSuccess << std::endl;
         if (cntSuccess > mnCacheHitTh)
         {
@@ -3313,7 +3320,6 @@ namespace ORB_SLAM3
         // 否则，更新地图点，并从地图点中拿到更多的点
         // no enough projections, search more in local map points
         UpdateLocalMap();
-
         std::cout << "UpdateLocalMap == " << mvpLocalMapPoints.size() << std::endl;
 
         int rejected = 0;
@@ -3411,257 +3417,6 @@ namespace ORB_SLAM3
             return vector<std::pair<KeyFrame *, std::tuple<int, int>>>(s.begin(), s.begin() + n);
     }
 
-    bool Tracking::TrackLocalMapDirect()
-    {
-        mTrackedFr++;
-
-        std::cout << "TrackLocalMapDirectXiang====" << std::to_string(mCurrentFrame.mTimeStamp) << std::endl;
-        // project the local map points into current frame, then search with direct align
-        // 这步把 local map points 投影至当前帧并确定其位置
-        if (mCurrentFrame.mbFeatureExtracted == true) // 此帧已经提了特征，用特征点法的local mapping来处理
-        {
-            // if we have extracted features, do it with feature matching
-            std::cout << "This frame already have features, using Track Local Map instead." << endl;
-            return TrackLocalMap();
-        }
-
-        //将局部地图点全部投影到当前帧的网格中　3D点－＞投影的2D点．　　
-        //在网格中找到3D点的观测帧与当前帧最近的帧．进行迭代匹配，得到精确的匹配点
-        std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-        std::fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint *>(NULL));
-        IterativeMatcher iterativeMatcher(mpORBextractorLeft->GetFeatureLevels(), mpORBextractorLeft->GetGridSize(), mCurrentFrame.mImGray.cols, mCurrentFrame.mImGray.rows);
-
-        int n_match = iterativeMatcher.ReprojectMap(mCurrentFrame, mvpLocalMapPoints);
-
-        std::cout << "before mvpLocalMapPointsTen.size() == " << mvpLocalMapPoints.size() << std::endl;
-        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-        //PoseOptimization　　optimizeGaussNewton　＋　optimizeStructure
-        UpdateLocalMap();
-        std::cout << "after UpdateLocalMap  mvpLocalMapPoints.size() ==  " << mvpLocalMapPoints.size() << "," << n_match << std::endl;
-        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-
-        std::cout << "TrackLocalMapDirect  time    ReprojectMap cost ==  " << std::to_string(std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0).count()) << std::endl;
-        std::cout << "TrackLocalMapDirect  time    UpdateLocalMap cost ==  " << std::to_string(std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count()) << std::endl;
-
-        // TOO check outliers before PO
-        int aux1 = 0, aux2 = 0;
-        for (int i = 0; i < mCurrentFrame.N; i++)
-        {
-            if (mCurrentFrame.mvpMapPoints[i])
-            {
-                aux1++;
-                if (mCurrentFrame.mvbOutlier[i])
-                {
-                    aux2++;
-                }
-            }
-        }
-
-        std::cout << "before   aux1, aux2 ==  " << aux1 << "," << aux2 << std::endl;
-        /////////////////////////////绘制3D重投影结果////////////////////////////////
-        // cv::Mat img_2;
-        // cv::cvtColor(mCurrentFrame.mvImagePyramid[0], img_2, CV_GRAY2RGB);
-        // double fx = 493.899502203882;
-        // double fy = 493.810934883376;
-        // double cx = 318.692071563937;
-        // double cy = 240.389706485301;
-        // for (size_t i = 0; i < mCurrentFrame.mvpMapPoints.size(); i++)
-        // {
-        //     if (mCurrentFrame.mvbOutlier[i])
-        //     {
-        //         continue;
-        //     }
-        //     MapPoint *p3d = mCurrentFrame.mvpMapPoints[i];
-        //     cv::Mat p3d_w = p3d->GetWorldPos();
-        //     cv::Mat p_cam = (mCurrentFrame.mRcw * p3d_w + mCurrentFrame.mtcw);
-        //     double u = p_cam.at<float>(0, 0) / p_cam.at<float>(2, 0) * fx + cx;
-        //     double v = p_cam.at<float>(1, 0) / p_cam.at<float>(2, 0) * fy + cy;
-        //     cv::circle(img_2, cv::Point2f(u, v), 2, cv::Scalar(0, 255, 255));
-        //     cv::circle(img_2, mCurrentFrame.mvKeysUn[i].pt, 2, cv::Scalar(255, 0, 255));
-        //     cv::line(img_2, cv::Point2f(u, v), mCurrentFrame.mvKeysUn[i].pt, cv::Scalar(255, 255, 0));
-
-        //     if (!set_anchor)
-        //     {
-        //         if (u > 50 && u < 400 && v > 50 && v < 400)
-        //         {
-        //             anchor_3d = p3d_w;
-        //             set_anchor = true;
-        //             std::cout << "set anchor ----------------------------------------------------------------------" << std::endl;
-        //         }
-        //     }
-        // }
-        // if (set_anchor)
-        // {
-        //     cv::Mat anchor_pc = mCurrentFrame.mRcw * anchor_3d + mCurrentFrame.mtcw;
-        //     double u = anchor_pc.at<float>(0, 0) / anchor_pc.at<float>(2, 0) * fx + cx;
-        //     double v = anchor_pc.at<float>(1, 0) / anchor_pc.at<float>(2, 0) * fy + cy;
-        //     cv::drawMarker(img_2, cv::Point2f(u, v), cv::Scalar(255, 255, 0), cv::MARKER_CROSS, 20, 2);
-        //     std::cout << "anchor 2d === " << u << "," << v << std::endl;
-        //     std::cout << "anchor 3d === " << anchor_3d << std::endl;
-        // }
-        // cv::imshow("pnp_result_optimize_before", img_2);
-        //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        int inliers;
-        if (!mpAtlas->isImuInitialized())
-            Optimizer::PoseOptimization(&mCurrentFrame);
-        else
-        {
-            if (mCurrentFrame.mnId <= mnLastRelocFrameId + mnFramesToResetIMU)
-            {
-                Verbose::PrintMess("TLM: PoseOptimization ", Verbose::VERBOSITY_DEBUG);
-                Optimizer::PoseOptimization(&mCurrentFrame);
-            }
-            else
-            {
-                // if(!mbMapUpdated && mState == OK) //  && (mnMatchesInliers>30))
-                if (!mbMapUpdated) //  && (mnMatchesInliers>30))
-                {
-                    Verbose::PrintMess("TLM: PoseInertialOptimizationLastFrame ", Verbose::VERBOSITY_DEBUG);
-                    inliers = Optimizer::PoseInertialOptimizationLastFrame(&mCurrentFrame); // , !mpLastKeyFrame->GetMap()->GetIniertialBA1());
-                }
-                else
-                {
-                    Verbose::PrintMess("TLM: PoseInertialOptimizationLastKeyFrame ", Verbose::VERBOSITY_DEBUG);
-                    inliers = Optimizer::PoseInertialOptimizationLastKeyFrame(&mCurrentFrame); // , !mpLastKeyFrame->GetMap()->GetIniertialBA1());
-                }
-            }
-        }
-
-        // /////////////////////////////绘制3D重投影结果////////////////////////////////
-        // // cv::Mat img_2;
-        // img_2.setTo(0);
-        // cv::cvtColor(mCurrentFrame.mvImagePyramid[0], img_2, CV_GRAY2RGB);
-        // for (size_t i = 0; i < mCurrentFrame.mvpMapPoints.size(); i++)
-        // {
-        //     if (mCurrentFrame.mvbOutlier[i])
-        //     {
-        //         continue;
-        //     }
-        //     MapPoint *p3d = mCurrentFrame.mvpMapPoints[i];
-        //     cv::Mat p3d_w = p3d->GetWorldPos();
-        //     cv::Mat p_cam = (mCurrentFrame.mRcw * p3d_w + mCurrentFrame.mtcw);
-        //     double u = p_cam.at<float>(0, 0) / p_cam.at<float>(2, 0) * fx + cx;
-        //     double v = p_cam.at<float>(1, 0) / p_cam.at<float>(2, 0) * fy + cy;
-        //     cv::circle(img_2, cv::Point2f(u, v), 2, cv::Scalar(0, 255, 0));
-        //     cv::circle(img_2, mCurrentFrame.mvKeysUn[i].pt, 2, cv::Scalar(0, 0, 255));
-        //     cv::line(img_2, cv::Point2f(u, v), mCurrentFrame.mvKeysUn[i].pt, cv::Scalar(255, 0, 0));
-
-        //     if (!set_anchor)
-        //     {
-        //         if (u > 50 && u < 400 && v > 50 && v < 400)
-        //         {
-        //             anchor_3d = p3d_w;
-        //             set_anchor = true;
-        //             std::cout << "set anchor ----------------------------------------------------------------------" << std::endl;
-        //         }
-        //     }
-        // }
-        // if (set_anchor)
-        // {
-        //     cv::Mat anchor_pc = mCurrentFrame.mRcw * anchor_3d + mCurrentFrame.mtcw;
-        //     double u = anchor_pc.at<float>(0, 0) / anchor_pc.at<float>(2, 0) * fx + cx;
-        //     double v = anchor_pc.at<float>(1, 0) / anchor_pc.at<float>(2, 0) * fy + cy;
-        //     cv::drawMarker(img_2, cv::Point2f(u, v), cv::Scalar(255, 255, 0), cv::MARKER_CROSS, 20, 2);
-        //     std::cout << "anchor 2d === " << u << "," << v << std::endl;
-        //     std::cout << "anchor 3d === " << anchor_3d << std::endl;
-        // }
-        // cv::imshow("pnp_result_optimize", img_2);
-        // //////////////////////////////////////////////////////////////////////////////////////////////////////
-        aux1 = 0, aux2 = 0;
-        for (int i = 0; i < mCurrentFrame.N; i++)
-        {
-            if (mCurrentFrame.mvpMapPoints[i])
-            {
-                aux1++;
-                if (mCurrentFrame.mvbOutlier[i])
-                    aux2++;
-            }
-        }
-        std::cout << " 11111 track local map direct mState = " << mState << std::endl;
-
-        mnMatchesInliers = 0;
-
-        // Update MapPoints Statistics
-        for (int i = 0; i < mCurrentFrame.N; i++)
-        {
-            if (mCurrentFrame.mvpMapPoints[i])
-            {
-                if (!mCurrentFrame.mvbOutlier[i])
-                {
-                    mCurrentFrame.mvpMapPoints[i]->IncreaseFound();
-                    if (!mbOnlyTracking)
-                    {
-                        if (mCurrentFrame.mvpMapPoints[i]->Observations() > 0)
-                        {
-                            mnMatchesInliers++;
-                        }
-                    }
-                    else
-                    {
-                        mnMatchesInliers++;
-                    }
-                }
-                else if (mSensor == System::STEREO)
-                {
-                    mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint *>(NULL);
-                }
-            }
-        }
-        std::cout << "当前帧的内点数目　＝＝　" << mnMatchesInliers << std::endl;
-
-        // Decide if the tracking was succesful
-        // More restrictive if there was a relocalization recently
-        mpLocalMapper->mnMatchesInliers = mnMatchesInliers;
-        if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && mnMatchesInliers < 50)
-        {
-            return false;
-        }
-
-        if ((mnMatchesInliers > 10) && (mState == RECENTLY_LOST))
-        {
-            return true;
-        }
-
-        std::cout << " 11111 track local map direct mState = " << mState << std::endl;
-
-        if (mSensor == System::IMU_MONOCULAR)
-        {
-            if (mnMatchesInliers < 15)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-        else if (mSensor == System::IMU_STEREO)
-        {
-            if (mnMatchesInliers < 15)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-        else
-        {
-            if (mnMatchesInliers < 30)
-            {
-                std::cout << " failed track local map direct  ===  mnMatchesInliers = " << mnMatchesInliers << std::endl;
-                std::cout << "mCurrentFrame.N == " << mCurrentFrame.N << std::endl;
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-    }
-
     bool Tracking::NeedNewKeyFrame()
     {
         //当前帧与上一个关键帧的时间戳大于0.25s, 大约为7帧间隔
@@ -3709,7 +3464,7 @@ namespace ORB_SLAM3
         //参考关键帧跟踪的地图点的数
         int nRefMatches = mpReferenceKF->TrackedMapPoints(nMinObs);
 
-        std::cout << " NeedNewKeyFrame ================================ " << mCurrentFrame.N << std::endl;
+        // std::cout << " NeedNewKeyFrame ================================ " << mCurrentFrame.N << std::endl;
         // Local Mapping accept keyframes?
         bool bLocalMappingIdle = mpLocalMapper->AcceptKeyFrames();
 
@@ -3767,14 +3522,14 @@ namespace ORB_SLAM3
         // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
         const bool c2 = (((mnMatchesInliers < nRefMatches * thRefRatio || bNeedToInsertClose)) && mnMatchesInliers > 15);
 
-        std::cout << "Need new keyframe   bLocalMappingIdle  == " << bLocalMappingIdle << std::endl;
-        std::cout << "Need new keyframe   mCurrentFrame.mnId  == " << mCurrentFrame.mnId << std::endl;
-        std::cout << "Need new keyframe   mnLastKeyFrameId == " << mnLastKeyFrameId << std::endl;
-        std::cout << "Need new keyframe   mMaxFrames, mMinFrames == " << mMaxFrames << "," << mMinFrames << std::endl;
-        std::cout << "Need new keyframe   mnMatchesInliers == " << mnMatchesInliers << std::endl;
-        std::cout << "Need new keyframe   nRefMatches == " << nRefMatches << std::endl;
-        std::cout << "Need new keyframe   thRefRatio == " << thRefRatio << std::endl;
-        std::cout << "Nedd new keyframe nRefMatches * thRefRatio = " << nRefMatches * thRefRatio << std::endl;
+        // std::cout << "Need new keyframe   bLocalMappingIdle  == " << bLocalMappingIdle << std::endl;
+        // std::cout << "Need new keyframe   mCurrentFrame.mnId  == " << mCurrentFrame.mnId << std::endl;
+        // std::cout << "Need new keyframe   mnLastKeyFrameId == " << mnLastKeyFrameId << std::endl;
+        // std::cout << "Need new keyframe   mMaxFrames, mMinFrames == " << mMaxFrames << "," << mMinFrames << std::endl;
+        // std::cout << "Need new keyframe   mnMatchesInliers == " << mnMatchesInliers << std::endl;
+        // std::cout << "Need new keyframe   nRefMatches == " << nRefMatches << std::endl;
+        // std::cout << "Need new keyframe   thRefRatio == " << thRefRatio << std::endl;
+        // std::cout << "Nedd new keyframe nRefMatches * thRefRatio = " << nRefMatches * thRefRatio << std::endl;
 
         // Temporal condition for Inertial cases
         bool c3 = false;
@@ -4009,6 +3764,7 @@ namespace ORB_SLAM3
         if (nToMatch > 0)
         {
             ORBmatcher matcher(0.8);
+            bool checkLevel = true;
             int th = 1;
             if (mSensor == System::RGBD)
                 th = 3;
@@ -4031,7 +3787,12 @@ namespace ORB_SLAM3
             if (mState == LOST || mState == RECENTLY_LOST) // Lost for less than 1 second
                 th = 15;                                   // 15
 
-            int cnt = matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th, mpLocalMapper->mbFarPoints, mpLocalMapper->mThFarPoints);
+            if (mbDirectFailed)
+            { // 直接法失败时，位姿不可靠，也使用较大的窗口来搜
+                checkLevel = false;
+                th = 5;
+            }
+            int cnt = matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th, mpLocalMapper->mbFarPoints, mpLocalMapper->mThFarPoints, checkLevel);
             std::cout << "Search by projection returns " << cnt << endl;
         }
     }

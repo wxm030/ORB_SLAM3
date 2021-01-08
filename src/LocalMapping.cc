@@ -86,10 +86,8 @@ namespace ORB_SLAM3
                 MapPointCulling();
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
-                std::cout << "CreateNewMapPoints before 111111111111111111111111111111111111111    =" << mlpRecentAddedMapPoints.size() << std::endl;
                 // Triangulate new MapPoints
                 CreateNewMapPoints();
-                std::cout << "CreateNewMapPoints after 1111111111111111111111111111111111111111    =" << mlpRecentAddedMapPoints.size() << std::endl;
                 std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
 
                 // Save here:
@@ -292,7 +290,7 @@ namespace ORB_SLAM3
 
     void LocalMapping::ProcessNewKeyFrame()
     {
-        cout << "ProcessNewKeyFrame: " << mlNewKeyFrames.size() << endl;
+        // cout << "ProcessNewKeyFrame: " << mlNewKeyFrames.size() << endl;
         {
             unique_lock<mutex> lock(mMutexNewKFs);
             mpCurrentKeyFrame = mlNewKeyFrames.front();

@@ -96,8 +96,6 @@ src/MLPnPsolver.cpp
 src/TwoViewReconstruction.cc
 src/sparse_img_align.cpp
 src/robust_cost.cpp
-src/IterativeMatcher.cc
-src/feature_alignment.cpp
 include/System.h
 include/Tracking.h
 include/LocalMapping.h
@@ -127,9 +125,6 @@ include/OptimizableTypes.h
 include/MLPnPsolver.h
 include/TwoViewReconstruction.h
 include/sparse_img_align.h
-include/feature.h
-include/feature_alignment.h
-include/IterativeMatcher.h
 )
 
 add_subdirectory(Thirdparty/g2o)
