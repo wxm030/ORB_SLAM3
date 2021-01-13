@@ -53,7 +53,7 @@ namespace ORB_SLAM3
           mTimeStamp(frame.mTimeStamp), mK(frame.mK.clone()), mDistCoef(frame.mDistCoef.clone()),
           mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), N(frame.N), mvKeys(frame.mvKeys),
           mImGray(frame.mImGray.clone()), mImRight(frame.mImRight.clone()), mImDepth(frame.mImDepth.clone()),
-          mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn), mvuRight(frame.mvuRight),
+          mvKeysRight(frame.mvKeysRight), mvuRight(frame.mvuRight),
           mvDepth(frame.mvDepth), mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec),
           mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()),
           mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mImuCalib(frame.mImuCalib), mnCloseMPs(frame.mnCloseMPs),
@@ -220,7 +220,7 @@ namespace ORB_SLAM3
         ComputeImagePyramid();
     }
 
-    //Mono
+    //Mono and Mono_imu
     Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor *extractor, ORBVocabulary *voc, GeometricCamera *pCamera, cv::Mat &distCoef, const float &bf, const float &thDepth, Frame *pPrevF, const IMU::Calib &ImuCalib)
         : mpcpi(NULL), mpORBvocabulary(voc), mpORBextractorLeft(extractor), mpORBextractorRight(static_cast<ORBextractor *>(NULL)),
           mTimeStamp(timeStamp), mK(static_cast<Pinhole *>(pCamera)->toK()), mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
@@ -306,7 +306,6 @@ namespace ORB_SLAM3
 
         N = mvKeys.size();
 
-        UndistortKeyPoints();
         // Set no stereo information
         mvuRight = std::vector<float>(N, -1);
         mvDepth = std::vector<float>(N, -1);
@@ -346,8 +345,6 @@ namespace ORB_SLAM3
             std::cout << "Cannot extract features, please check your image!" << endl;
             return;
         }
-
-        UndistortKeyPoints();
 
         if (mSensor == Monocular)
         {
@@ -458,7 +455,7 @@ namespace ORB_SLAM3
 
         for (int i = 0; i < N; i++)
         {
-            const cv::KeyPoint &kp = (Nleft == -1) ? mvKeysUn[i]
+            const cv::KeyPoint &kp = (Nleft == -1) ? mvKeys[i]
                                                    : (i < Nleft) ? mvKeys[i]
                                                                  : mvKeysRight[i - Nleft];
 
@@ -480,8 +477,8 @@ namespace ORB_SLAM3
         {
             if (N > 0 && mbFeatureExtracted == false) // 没提特征然而有追踪点，来自直接法，提取新的fast特征点
             {
-                (*mpORBextractorLeft)(this, mvKeys, mDescriptors, ORBextractor::FAST_KEYPOINT);
-                //(*mpORBextractorLeft)(this, mvKeys, mDescriptors, ORBextractor::DSO_KEYPOINT);
+                // (*mpORBextractorLeft)(this, mvKeys, mDescriptors, ORBextractor::FAST_KEYPOINT);
+                (*mpORBextractorLeft)(this, mvKeys, mDescriptors, ORBextractor::DSO_KEYPOINT);
             }
             else
             {
@@ -593,8 +590,8 @@ namespace ORB_SLAM3
                 return false;
 
             // cout << "d";
-            pMP->mTrackProjX = uv.x;
-            pMP->mTrackProjY = uv.y;
+            // pMP->mTrackProjX = uv.x;///////////////////todo
+            // pMP->mTrackProjY = uv.y;
 
             // Check distance is in the scale invariance region of the MapPoint
             const float maxDistance = pMP->GetMaxDistanceInvariance();
@@ -650,30 +647,6 @@ namespace ORB_SLAM3
 
             return pMP->mbTrackInView || pMP->mbTrackInViewR;
         }
-    }
-
-    bool Frame::isInFrame(MapPoint *pMP, Eigen::Vector2d &p2d, int boundary)
-    {
-        // 3D in absolute coordinates
-        cv::Mat P = pMP->GetWorldPos();
-
-        // 3D in camera coordinates
-        const cv::Mat Pc = mRcw * P + mtcw;
-
-        const float Pc_dist = cv::norm(Pc);
-        // Check positive depth
-        const float &PcZ = Pc.at<float>(2);
-        const float invz = 1.0f / PcZ;
-
-        if (PcZ < 0.0f)
-            return false;
-
-        const cv::Point2f uv = mpCamera->project(Pc);
-        p2d = {uv.x, uv.y};
-        if (uv.x >= boundary && uv.x < mnMaxX - boundary && uv.y >= boundary && uv.y < mnMaxY - boundary)
-            return true;
-
-        return false;
     }
 
     bool Frame::ProjectPointDistort(MapPoint *pMP, cv::Point2f &kp, float &u, float &v)
@@ -793,7 +766,7 @@ namespace ORB_SLAM3
 
                 for (size_t j = 0, jend = vCell.size(); j < jend; j++)
                 {
-                    const cv::KeyPoint &kpUn = (Nleft == -1) ? mvKeysUn[vCell[j]]
+                    const cv::KeyPoint &kpUn = (Nleft == -1) ? mvKeys[vCell[j]]
                                                              : (!bRight) ? mvKeys[vCell[j]]
                                                                          : mvKeysRight[vCell[j]];
                     if (bCheckLevels)
@@ -838,70 +811,46 @@ namespace ORB_SLAM3
         }
     }
 
-    void Frame::UndistortKeyPoints()
-    {
-        if (mDistCoef.at<float>(0) == 0.0)
-        {
-            mvKeysUn = mvKeys;
-            return;
-        }
+    //not used anymore
+    // void Frame::UndistortKeyPoints()
+    // {
+    //     if (mDistCoef.at<float>(0) == 0.0)
+    //     {
+    //         mvKeysUn = mvKeys;
+    //         return;
+    //     }
 
-        // Fill matrix with points
-        cv::Mat mat(N, 2, CV_32F);
+    //     // Fill matrix with points
+    //     cv::Mat mat(N, 2, CV_32F);
 
-        for (int i = 0; i < N; i++)
-        {
-            mat.at<float>(i, 0) = mvKeys[i].pt.x;
-            mat.at<float>(i, 1) = mvKeys[i].pt.y;
-        }
+    //     for (int i = 0; i < N; i++)
+    //     {
+    //         mat.at<float>(i, 0) = mvKeys[i].pt.x;
+    //         mat.at<float>(i, 1) = mvKeys[i].pt.y;
+    //     }
 
-        // Undistort points
-        mat = mat.reshape(2);
-        cv::undistortPoints(mat, mat, static_cast<Pinhole *>(mpCamera)->toK(), mDistCoef, cv::Mat(), mK);
-        mat = mat.reshape(1);
+    //     // Undistort points
+    //     mat = mat.reshape(2);
+    //     cv::undistortPoints(mat, mat, static_cast<Pinhole *>(mpCamera)->toK(), mDistCoef, cv::Mat(), mK);
+    //     mat = mat.reshape(1);
 
-        // Fill undistorted keypoint vector
-        mvKeysUn.resize(N);
-        for (int i = 0; i < N; i++)
-        {
-            cv::KeyPoint kp = mvKeys[i];
-            kp.pt.x = mat.at<float>(i, 0);
-            kp.pt.y = mat.at<float>(i, 1);
-            mvKeysUn[i] = kp;
-        }
-    }
+    //     // Fill undistorted keypoint vector
+    //     mvKeysUn.resize(N);
+    //     for (int i = 0; i < N; i++)
+    //     {
+    //         cv::KeyPoint kp = mvKeys[i];
+    //         kp.pt.x = mat.at<float>(i, 0);
+    //         kp.pt.y = mat.at<float>(i, 1);
+    //         mvKeysUn[i] = kp;
+    //     }
+    // }
 
     void Frame::ComputeImageBounds(const cv::Mat &imLeft)
     {
-        if (mDistCoef.at<float>(0) != 0.0)
-        {
-            cv::Mat mat(4, 2, CV_32F);
-            mat.at<float>(0, 0) = 0.0;
-            mat.at<float>(0, 1) = 0.0;
-            mat.at<float>(1, 0) = imLeft.cols;
-            mat.at<float>(1, 1) = 0.0;
-            mat.at<float>(2, 0) = 0.0;
-            mat.at<float>(2, 1) = imLeft.rows;
-            mat.at<float>(3, 0) = imLeft.cols;
-            mat.at<float>(3, 1) = imLeft.rows;
-
-            mat = mat.reshape(2);
-            cv::undistortPoints(mat, mat, static_cast<Pinhole *>(mpCamera)->toK(), mDistCoef, cv::Mat(), mK);
-            mat = mat.reshape(1);
-
-            // Undistort corners
-            mnMinX = min(mat.at<float>(0, 0), mat.at<float>(2, 0));
-            mnMaxX = max(mat.at<float>(1, 0), mat.at<float>(3, 0));
-            mnMinY = min(mat.at<float>(0, 1), mat.at<float>(1, 1));
-            mnMaxY = max(mat.at<float>(2, 1), mat.at<float>(3, 1));
-        }
-        else
-        {
-            mnMinX = 0.0f;
-            mnMaxX = imLeft.cols;
-            mnMinY = 0.0f;
-            mnMaxY = imLeft.rows;
-        }
+        mnMinX = 0.0f;
+        mnMaxX = imLeft.cols;
+        mnMinY = 0.0f;
+        mnMaxY = imLeft.rows;
     }
 
     void Frame::ComputeStereoMatches()
@@ -1092,7 +1041,6 @@ namespace ORB_SLAM3
         for (int i = 0; i < N; i++)
         {
             const cv::KeyPoint &kp = mvKeys[i];
-            const cv::KeyPoint &kpU = mvKeysUn[i];
 
             const float &v = kp.pt.y;
             const float &u = kp.pt.x;
@@ -1102,7 +1050,7 @@ namespace ORB_SLAM3
             if (d > 0)
             {
                 mvDepth[i] = d;
-                mvuRight[i] = kpU.pt.x - mbf / d;
+                mvuRight[i] = kp.pt.x - mbf / d;
             }
         }
     }
@@ -1112,8 +1060,8 @@ namespace ORB_SLAM3
         const float z = mvDepth[i];
         if (z > 0)
         {
-            const float u = mvKeysUn[i].pt.x;
-            const float v = mvKeysUn[i].pt.y;
+            const float u = mvKeys[i].pt.x;
+            const float v = mvKeys[i].pt.y;
             const float x = (u - cx) * z * invfx;
             const float y = (v - cy) * z * invfy;
             cv::Mat x3Dc = (cv::Mat_<float>(3, 1) << x, y, z);

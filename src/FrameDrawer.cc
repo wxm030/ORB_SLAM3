@@ -24,11 +24,6 @@
 
 #include <mutex>
 
-///////////////////////////////////绘制//////////////////////////////////////////////
-bool set_anchor = false;
-cv::Mat anchor_3d;
-///////////////////////////////////绘制//////////////////////////////////////////////
-
 namespace ORB_SLAM3
 {
 
@@ -133,70 +128,84 @@ namespace ORB_SLAM3
                     // This is a match to a MapPoint in the map
                     if (vbMap[i])
                     {
-                        // cv::rectangle(im, pt1, pt2, cv::Scalar(0, 255, 0)); ////////////////////////////////////////////////
-                        // cv::circle(im, vCurrentKeys[i].pt, 2, cv::Scalar(0, 255, 0), -1);///////////////////////////////////
+                        cv::rectangle(im, pt1, pt2, cv::Scalar(0, 255, 0));               ////////////////////////////////////////////////
+                        cv::circle(im, vCurrentKeys[i].pt, 2, cv::Scalar(0, 255, 0), -1); ///////////////////////////////////
                         mnTracked++;
                     }
                     else // This is match to a "visual odometry" MapPoint created in the last frame
                     {
-                        // cv::rectangle(im, pt1, pt2, cv::Scalar(255, 0, 0));///////////////////////////////////
-                        // cv::circle(im, vCurrentKeys[i].pt, 2, cv::Scalar(255, 0, 0), -1);///////////////////////////////////
+                        cv::rectangle(im, pt1, pt2, cv::Scalar(255, 0, 0));               ///////////////////////////////////
+                        cv::circle(im, vCurrentKeys[i].pt, 2, cv::Scalar(255, 0, 0), -1); ///////////////////////////////////
                         mnTrackedVO++;
                     }
                 }
-                /*else
-            {
-                cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,0,255),-1);
-            }*/
+                else
+                {
+                    cv::circle(im, vCurrentKeys[i].pt, 2, cv::Scalar(0, 0, 255), -1);
+                }
             }
             // std::cout << "2.3" << std::endl;
 
             ///////////////////////////////////////////////////绘制////////////////////////////////////////////////
-            const float fx = mCurrentFrame.mK.at<float>(0, 0);
-            const float fy = mCurrentFrame.mK.at<float>(1, 1);
-            const float cx = mCurrentFrame.mK.at<float>(0, 2);
-            const float cy = mCurrentFrame.mK.at<float>(1, 2); 
-            for (int i = 0; i < mCurrentFrame.mvpMapPoints.size(); i++)
+            if (!mCurrentFrame.mTcw.empty())
             {
-                MapPoint *p3d = mCurrentFrame.mvpMapPoints[i];
-                if (!p3d)
+                const float fx = mCurrentFrame.mK.at<float>(0, 0);
+                const float fy = mCurrentFrame.mK.at<float>(1, 1);
+                const float cx = mCurrentFrame.mK.at<float>(0, 2);
+                const float cy = mCurrentFrame.mK.at<float>(1, 2);
+                for (int i = 0; i < mCurrentFrame.mvpMapPoints.size(); i++)
                 {
-                    continue;
-                }
-                if (mCurrentFrame.mvbOutlier[i])
-                {
-                    continue;
-                }
-                cv::Mat p3d_w = p3d->GetWorldPos();
-                cv::Mat R = mCurrentFrame.mTcw.rowRange(0, 3).colRange(0, 3);
-                cv::Mat t = mCurrentFrame.mTcw.rowRange(0, 3).col(3);
-                cv::Mat p_cam = (R * p3d_w + t);
-                double u = p_cam.at<float>(0, 0) / p_cam.at<float>(2, 0) * fx + cx;
-                double v = p_cam.at<float>(1, 0) / p_cam.at<float>(2, 0) * fy + cy;
-                cv::circle(im, cv::Point2f(u, v), 2, cv::Scalar(0, 0, 255));
-                cv::circle(im, mCurrentFrame.mvKeys[i].pt, 2, cv::Scalar(255, 0, 0));
-                cv::line(im, cv::Point2f(u, v), mCurrentFrame.mvKeys[i].pt, cv::Scalar(0, 255, 0));
-                if (!set_anchor)
-                {
-                    if (u > 300 && u < 400 && v > 300 && v < 400)
+                    MapPoint *p3d = mCurrentFrame.mvpMapPoints[i];
+                    if (!p3d)
                     {
-                        anchor_3d = p3d_w;
-                        set_anchor = true;
-                        std::cout << "set anchor -----------" << std::endl;
-                        std::cout << "anchor_3d = " << anchor_3d << std::endl;
+                        continue;
+                    }
+                    if (mCurrentFrame.mvbOutlier[i])
+                    {
+                        continue;
+                    }
+                    cv::Mat p3d_w = p3d->GetWorldPos();
+                    cv::Mat R = mCurrentFrame.mTcw.rowRange(0, 3).colRange(0, 3);
+                    cv::Mat t = mCurrentFrame.mTcw.rowRange(0, 3).col(3);
+                    cv::Mat p_cam = (R * p3d_w + t);
+                    double u = p_cam.at<float>(0, 0) / p_cam.at<float>(2, 0) * fx + cx;
+                    double v = p_cam.at<float>(1, 0) / p_cam.at<float>(2, 0) * fy + cy;
+                    cv::circle(im, cv::Point2f(u, v), 2, cv::Scalar(0, 0, 255));
+                    cv::circle(im, mCurrentFrame.mvKeys[i].pt, 2, cv::Scalar(255, 0, 0));
+                    cv::line(im, cv::Point2f(u, v), mCurrentFrame.mvKeys[i].pt, cv::Scalar(0, 255, 0));
+                    if (!set_anchor)
+                    {
+                        if (u > 300 && u < 400 && v > 300 && v < 400)
+                        {
+                            anchor_3d = p3d;
+                            set_anchor = true;
+                            std::cout << "set anchor -----------" << std::endl;
+                            std::cout << "anchor_3d = " << anchor_3d->GetWorldPos() << std::endl;
+                        }
                     }
                 }
-            }
-            if (set_anchor)
-            {
-                cv::Mat R = mCurrentFrame.mTcw.rowRange(0, 3).colRange(0, 3);
-                cv::Mat t = mCurrentFrame.mTcw.rowRange(0, 3).col(3);
-                cv::Mat anchor_pc = (R * anchor_3d + t);
-                double u = anchor_pc.at<float>(0, 0) / anchor_pc.at<float>(2, 0) * fx + cx;
-                double v = anchor_pc.at<float>(1, 0) / anchor_pc.at<float>(2, 0) * fy + cy;
-                cv::drawMarker(im, cv::Point2f(u, v), cv::Scalar(255, 255, 0), cv::MARKER_CROSS, 20, 2);
-                // std::cout << "anchor 2d === " << u << "," << v << std::endl;
-                // std::cout << "anchor 3d === " << anchor_3d << std::endl;
+                if (set_anchor)
+                {
+                    //如果铆点不存在，则重新选择一个铆点
+                    if (anchor_3d && !anchor_3d->isBad())
+                    {
+                        cv::Mat R = mCurrentFrame.mTcw.rowRange(0, 3).colRange(0, 3);
+                        cv::Mat t = mCurrentFrame.mTcw.rowRange(0, 3).col(3);
+                        cv::Mat anchor_pc = (R * anchor_3d->GetWorldPos() + t);
+                        double u = anchor_pc.at<float>(0, 0) / anchor_pc.at<float>(2, 0) * fx + cx;
+                        double v = anchor_pc.at<float>(1, 0) / anchor_pc.at<float>(2, 0) * fy + cy;
+                        cv::drawMarker(im, cv::Point2f(u, v), color_anchor, cv::MARKER_CROSS, 600, 2);
+                        // std::cout << "anchor 2d === " << u << "," << v << std::endl;
+                        std::cout << "anchor 3d === " << anchor_3d->GetWorldPos() << "\n"
+                                  << std::to_string(mCurrentFrame.mTimeStamp) << std::endl;
+                    }
+                    else
+                    {
+                        set_anchor = false;
+                        cv::RNG rng(time(0));
+                        color_anchor = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+                    }
+                }
             }
             ////////////////////////////////////////////////////绘制///////////////////////////////////////////////
         }
@@ -314,6 +323,10 @@ namespace ORB_SLAM3
 
         cv::Mat imWithInfo;
         DrawTextInfo(im, state, imWithInfo);
+
+        //保存每一帧信息
+        std::string every_pnp_result_name = "/home/wxm/Documents/code/ORB_SLAM3/data/every_pnp_result/" + std::to_string(mCurrentFrame.mTimeStamp) + ".png";
+        cv::imwrite(every_pnp_result_name, imWithInfo);
 
         return imWithInfo;
     }

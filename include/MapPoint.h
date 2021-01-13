@@ -202,7 +202,6 @@ namespace ORB_SLAM3
         int mnTrackScaleLevel, mnTrackScaleLevelR;
         float mTrackViewCos, mTrackViewCosR;
         long unsigned int mnTrackReferenceForFrame;
-        long unsigned int mnTrackReferenceForFrame2;
         long unsigned int mnLastFrameSeen;
 
         // Variables used by local mapping

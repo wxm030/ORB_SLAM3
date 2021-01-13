@@ -467,6 +467,7 @@ namespace ORB_SLAM3
             umax[v] = v0;
             ++v0;
         }
+        mnGridSize = -1;
     }
 
     static void computeOrientation(const Mat &image, vector<KeyPoint> &keypoints, const vector<int> &umax)
@@ -805,6 +806,7 @@ namespace ORB_SLAM3
         vector<KeyPoint> &allKeypoints,
         vector<KeyPoint> &exist_kps)
     {
+        std::cout << "ComputeKeyPointsDSOSingleLevel === " << std::endl;
         Mat img = mvImagePyramid[0];
         mOccupancy = cv::Mat::zeros(img.rows, img.cols, CV_8U);
 
@@ -818,6 +820,8 @@ namespace ORB_SLAM3
         int w = mvImagePyramid[0].cols;
         int n = nfeatures;
 
+        std::cout << "mnGridSize == n == " << mnGridSize << "," << n << std::endl;
+
         // 第一帧 gridsize = -1 ; 会根据设定的特征数n, 图像尺寸计算出gridsize
         // 以后每帧的gridsize就和上一帧相关了。
         // 这样根据环境纹理的丰富情况动态调整，而不用每次都从固定的gridsize开始检测。
@@ -826,15 +830,18 @@ namespace ORB_SLAM3
             mnGridSize = static_cast<int>(std::sqrt(1.0 * h * w / n));
         allKeypoints.reserve(n * 2);
 
+        std::cout << "Grid size 111212222222   " << mnGridSize << "," << h << "," << w << "," << n << endl;
+
         int cnt = 0; // 特征数
         while (cnt < n)
         {
+            std::cout << "cnt ====    " << mnGridSize << "," << cnt << "," << n << endl;
             if (cnt > 0)
             {
                 mnGridSize -= 5;
                 if (mnGridSize < 7)
                 {
-                    std::cout << "Grid size is too small, quit: " << mnGridSize << endl;
+                    std::cout << "Grid size is too small, quit: " << mnGridSize << "," << n << endl;
                     mnGridSize = 7; // fast计算的最小宽度是7
                     break;
                 }
@@ -862,6 +869,7 @@ namespace ORB_SLAM3
                 vector<fast::fast_xy> fast_corners;
 #ifdef __SSE2__
                 fast::fast_corner_detect_10_sse2(data, mnGridSize, mnGridSize, w, 20, fast_corners);
+
 #else
                 fast::fast_corner_detect_10(data, mnGridSize, mnGridSize, w, 20, fast_corners);
 #endif
@@ -943,7 +951,7 @@ namespace ORB_SLAM3
             mvbGridOccupancy[k] = true;
         }
 
-        Corners corners(mnGridCols * mnGridRows, Corner(0, 0, 20, 0, 0.0f, 0));
+        Corners corners(mnGridCols * mnGridRows, Corner(0, 0, 5, 0, 0.0f, 0));
         allKeypoints.resize(nFeaturePyrlevels);
 
         for (int level = 0; level < nFeaturePyrlevels; level++)
@@ -965,17 +973,33 @@ namespace ORB_SLAM3
             // fast sse2
             fast::fast_corner_detect_10_sse2(
                 (fast::fast_byte *)roi.data,
-                width, height, width, iniThFAST, fast_corners);
+                width, height, width, 20, fast_corners);
 #else
             fast::fast_corner_detect_10(
                 (fast::fast_byte *)roi.data,
-                width, height, width, iniThFAST, fast_corners);
+                width, height, width, 20, fast_corners);
 #endif
+
+            if (fast_corners.empty())
+            {
+                // try lower threshold
+#ifdef __SSE2__
+                fast::fast_corner_detect_10_sse2((fast::fast_byte *)roi.data,
+                                                 width, height, width, 5, fast_corners);
+#else
+                fast::fast_corner_detect_10((fast::fast_byte *)roi.data,
+                                            width, height, width, 5, fast_corners);
+#endif
+            }
+
+            if (fast_corners.empty())
+                continue;
+
             // nonmax
             vector<int> scores, nm_corners;
             fast::fast_corner_score_10(
                 (fast::fast_byte *)roi.data,
-                width, fast_corners, iniThFAST, scores);
+                width, fast_corners, 5, scores);
             fast::fast_nonmax_3x3(fast_corners, scores, nm_corners);
 
             for (int nm : nm_corners)
@@ -1001,7 +1025,7 @@ namespace ORB_SLAM3
         }
         // Create feature for every corner that has high enough corner score
         std::for_each(corners.begin(), corners.end(), [&](Corner &c) {
-            if (c.score > iniThFAST)
+            if (c.score > 5)
             {
                 // insert this as a key point
                 cv::KeyPoint kp(cv::Point2f(c.x, c.y), c.size);
@@ -1021,6 +1045,11 @@ namespace ORB_SLAM3
 
     void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint>> &allKeypoints)
     {
+        //网格化
+        bool need_grid = true;
+        int mnGridCols = ceil(static_cast<double>(mvImagePyramid[0].cols) / mGridSize);
+        int mnGridRows = ceil(static_cast<double>(mvImagePyramid[0].rows) / mGridSize);
+        std::vector<bool> mvbGridOccupancy = vector<bool>(mnGridCols * mnGridRows, false);
         std::cout << "ComputeKeyPointsOctTree ===" << std::endl;
         allKeypoints.resize(nFeaturePyrlevels);
 
@@ -1103,11 +1132,33 @@ namespace ORB_SLAM3
                 keypoints[i].octave = level;
                 keypoints[i].size = scaledPatchSize;
             }
+            //做一个网格化操作，来减少重复纹理的错误匹配
+            if (need_grid)
+            {
+                vector<KeyPoint> keypoints_grid;
+                vector<KeyPoint>::iterator px_ref_it = keypoints.begin();
+                for (; px_ref_it != keypoints.end(); ++px_ref_it)
+                {
+                    const int gy = static_cast<int>(px_ref_it->pt.y * mvScaleFactor[level] / mGridSize);
+                    const int gx = static_cast<int>(px_ref_it->pt.x * mvScaleFactor[level] / mGridSize);
+                    const size_t k = gy * mnGridCols + gx;
+                    if (mvbGridOccupancy[k] == true) // 已经占据
+                    {
+                        continue;
+                    }
+                    mvbGridOccupancy[k] = true;
+                    keypoints_grid.push_back(*px_ref_it);
+                }
+                allKeypoints[level].clear();
+                allKeypoints[level] = keypoints_grid;
+            }
         }
 
         // compute orientations
         for (int level = 0; level < nFeaturePyrlevels; ++level)
+        {
             computeOrientation(mvImagePyramid[level], allKeypoints[level], umax);
+        }
     }
 
     void ORBextractor::ComputeKeyPointsOld(std::vector<std::vector<KeyPoint>> &allKeypoints)
@@ -1422,10 +1473,13 @@ namespace ORB_SLAM3
 
         int nkeypoints = 0;
         for (int level = 0; level < nFeaturePyrlevels; ++level)
+        {
             nkeypoints += (int)allKeypoints[level].size();
+        }
         nkeypoints += _keypoints.size();
 
-        std::cout << "Extract feature point  total: " << nkeypoints << "  already have: " << frame->N << std::endl;
+        std::cout << "当前帧特征点共　" << nkeypoints << "已有的　　＝＝　" << frame->N << std::endl;
+        //std::cout << "Extract feature point  total: " << nkeypoints << "  already have: " << frame->N << std::endl;
         Mat descriptors;
         if (nkeypoints == 0)
             _descriptors.release();

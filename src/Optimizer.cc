@@ -160,7 +160,7 @@ namespace ORB_SLAM3
 
                 if (leftIndex != -1 && pKF->mvuRight[get<0>(mit->second)] < 0)
                 {
-                    const cv::KeyPoint &kpUn = pKF->mvKeysUn[leftIndex];
+                    const cv::KeyPoint &kpUn = pKF->mvKeys[leftIndex];
 
                     Eigen::Matrix<double, 2, 1> obs;
                     obs << kpUn.pt.x, kpUn.pt.y;
@@ -190,7 +190,7 @@ namespace ORB_SLAM3
                 }
                 else if (leftIndex != -1 && pKF->mvuRight[leftIndex] >= 0) //Stereo observation
                 {
-                    const cv::KeyPoint &kpUn = pKF->mvKeysUn[leftIndex];
+                    const cv::KeyPoint &kpUn = pKF->mvKeys[leftIndex];
 
                     Eigen::Matrix<double, 3, 1> obs;
                     const float kp_ur = pKF->mvuRight[get<0>(mit->second)];
@@ -654,7 +654,7 @@ namespace ORB_SLAM3
 
                     if (leftIndex != -1 && pKFi->mvuRight[get<0>(mit->second)] < 0) // Monocular observation
                     {
-                        kpUn = pKFi->mvKeysUn[leftIndex];
+                        kpUn = pKFi->mvKeys[leftIndex];
                         Eigen::Matrix<double, 2, 1> obs;
                         obs << kpUn.pt.x, kpUn.pt.y;
 
@@ -680,7 +680,7 @@ namespace ORB_SLAM3
                     }
                     else if (leftIndex != -1 && pKFi->mvuRight[leftIndex] >= 0) // stereo observation
                     {
-                        kpUn = pKFi->mvKeysUn[leftIndex];
+                        kpUn = pKFi->mvKeys[leftIndex];
                         const float kp_ur = pKFi->mvuRight[leftIndex];
                         Eigen::Matrix<double, 3, 1> obs;
                         obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
@@ -897,7 +897,7 @@ namespace ORB_SLAM3
                             pFrame->mvbOutlier[i] = false;
 
                             Eigen::Matrix<double, 2, 1> obs;
-                            const cv::KeyPoint &kpUn = pFrame->mvKeysUn[i];
+                            const cv::KeyPoint &kpUn = pFrame->mvKeys[i];
                             obs << kpUn.pt.x, kpUn.pt.y;
 
                             ORB_SLAM3::EdgeSE3ProjectXYZOnlyPose *e = new ORB_SLAM3::EdgeSE3ProjectXYZOnlyPose();
@@ -929,7 +929,7 @@ namespace ORB_SLAM3
 
                             //SET EDGE
                             Eigen::Matrix<double, 3, 1> obs;
-                            const cv::KeyPoint &kpUn = pFrame->mvKeysUn[i];
+                            const cv::KeyPoint &kpUn = pFrame->mvKeys[i];
                             const float &kp_ur = pFrame->mvuRight[i];
                             obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
 
@@ -1390,7 +1390,7 @@ namespace ORB_SLAM3
                     // Monocular observation of Camera 0
                     if (cam0Index != -1 && pKFi->mvuRight[cam0Index] < 0)
                     {
-                        const cv::KeyPoint &kpUn = pKFi->mvKeysUn[cam0Index];
+                        const cv::KeyPoint &kpUn = pKFi->mvKeys[cam0Index];
                         Eigen::Matrix<double, 2, 1> obs;
                         obs << kpUn.pt.x, kpUn.pt.y;
 
@@ -1417,7 +1417,7 @@ namespace ORB_SLAM3
                     }
                     else if (cam0Index != -1 && pKFi->mvuRight[cam0Index] >= 0) // Stereo observation (with rectified images)
                     {
-                        const cv::KeyPoint &kpUn = pKFi->mvKeysUn[cam0Index];
+                        const cv::KeyPoint &kpUn = pKFi->mvKeys[cam0Index];
                         Eigen::Matrix<double, 3, 1> obs;
                         const float kp_ur = pKFi->mvuRight[cam0Index];
                         obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
@@ -1903,7 +1903,7 @@ namespace ORB_SLAM3
                     // Monocular observation
                     if (leftIndex != -1 && pKFi->mvuRight[get<0>(mit->second)] < 0)
                     {
-                        const cv::KeyPoint &kpUn = pKFi->mvKeysUn[leftIndex];
+                        const cv::KeyPoint &kpUn = pKFi->mvKeys[leftIndex];
                         Eigen::Matrix<double, 2, 1> obs;
                         obs << kpUn.pt.x, kpUn.pt.y;
 
@@ -1930,7 +1930,7 @@ namespace ORB_SLAM3
                     }
                     else if (leftIndex != -1 && pKFi->mvuRight[get<0>(mit->second)] >= 0) // Stereo observation
                     {
-                        const cv::KeyPoint &kpUn = pKFi->mvKeysUn[leftIndex];
+                        const cv::KeyPoint &kpUn = pKFi->mvKeys[leftIndex];
                         Eigen::Matrix<double, 3, 1> obs;
                         const float kp_ur = pKFi->mvuRight[get<0>(mit->second)];
                         obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
@@ -3761,7 +3761,7 @@ namespace ORB_SLAM3
 
             // Set edge x1 = S12*X2
             Eigen::Matrix<double, 2, 1> obs1;
-            const cv::KeyPoint &kpUn1 = pKF1->mvKeysUn[i];
+            const cv::KeyPoint &kpUn1 = pKF1->mvKeys[i];
             obs1 << kpUn1.pt.x, kpUn1.pt.y;
 
             g2o::EdgeSim3ProjectXYZ *e12 = new g2o::EdgeSim3ProjectXYZ();
@@ -3778,7 +3778,7 @@ namespace ORB_SLAM3
 
             // Set edge x2 = S21*X1
             Eigen::Matrix<double, 2, 1> obs2;
-            const cv::KeyPoint &kpUn2 = pKF2->mvKeysUn[i2];
+            const cv::KeyPoint &kpUn2 = pKF2->mvKeys[i2];
             obs2 << kpUn2.pt.x, kpUn2.pt.y;
 
             g2o::EdgeInverseSim3ProjectXYZ *e21 = new g2o::EdgeInverseSim3ProjectXYZ();
@@ -3995,7 +3995,7 @@ namespace ORB_SLAM3
 
             // Set edge x1 = S12*X2
             Eigen::Matrix<double, 2, 1> obs1;
-            const cv::KeyPoint &kpUn1 = pKF1->mvKeysUn[i];
+            const cv::KeyPoint &kpUn1 = pKF1->mvKeys[i];
             obs1 << kpUn1.pt.x, kpUn1.pt.y;
 
             ORB_SLAM3::EdgeSim3ProjectXYZ *e12 = new ORB_SLAM3::EdgeSim3ProjectXYZ();
@@ -4017,7 +4017,7 @@ namespace ORB_SLAM3
             bool inKF2;
             if (i2 >= 0)
             {
-                kpUn2 = pKF2->mvKeysUn[i2];
+                kpUn2 = pKF2->mvKeys[i2];
                 obs2 << kpUn2.pt.x, kpUn2.pt.y;
                 inKF2 = true;
 
@@ -4255,7 +4255,7 @@ namespace ORB_SLAM3
 
             // Set edge x1 = S12*X2
             Eigen::Matrix<double, 2, 1> obs1;
-            const cv::KeyPoint &kpUn1 = pKF1->mvKeysUn[i];
+            const cv::KeyPoint &kpUn1 = pKF1->mvKeys[i];
             obs1 << kpUn1.pt.x, kpUn1.pt.y;
 
             ORB_SLAM3::EdgeSim3ProjectXYZ *e12 = new ORB_SLAM3::EdgeSim3ProjectXYZ();
@@ -4275,7 +4275,7 @@ namespace ORB_SLAM3
             cv::KeyPoint kpUn2;
             if (i2 >= 0 && pKFm == pKF2)
             {
-                kpUn2 = pKFm->mvKeysUn[i2];
+                kpUn2 = pKFm->mvKeys[i2];
                 obs2 << kpUn2.pt.x, kpUn2.pt.y;
             }
             else
@@ -4750,7 +4750,7 @@ namespace ORB_SLAM3
                     {
                         mVisEdges[pKFi->mnId]++;
 
-                        kpUn = pKFi->mvKeysUn[leftIndex];
+                        kpUn = pKFi->mvKeys[leftIndex];
                         Eigen::Matrix<double, 2, 1> obs;
                         obs << kpUn.pt.x, kpUn.pt.y;
 
@@ -4778,7 +4778,7 @@ namespace ORB_SLAM3
                     // Stereo-observation
                     else if (leftIndex != -1) // Stereo observation
                     {
-                        kpUn = pKFi->mvKeysUn[leftIndex];
+                        kpUn = pKFi->mvKeys[leftIndex];
                         mVisEdges[pKFi->mnId]++;
 
                         const float kp_ur = pKFi->mvuRight[leftIndex];
@@ -5841,7 +5841,7 @@ namespace ORB_SLAM3
                 //cout << "-- KF view exists" << endl;
                 nEdges++;
 
-                const cv::KeyPoint &kpUn = pKF->mvKeysUn[get<0>(mit->second)];
+                const cv::KeyPoint &kpUn = pKF->mvKeys[get<0>(mit->second)];
                 //cout << "-- KeyPoint loads" << endl;
 
                 if (pKF->mvuRight[get<0>(mit->second)] < 0) //Monocular
@@ -6221,7 +6221,7 @@ namespace ORB_SLAM3
                 //cout << "-- KF view exists" << endl;
                 nEdges++;
 
-                const cv::KeyPoint &kpUn = pKF->mvKeysUn[get<0>(mit->second)];
+                const cv::KeyPoint &kpUn = pKF->mvKeys[get<0>(mit->second)];
                 //cout << "-- KeyPoint loads" << endl;
 
                 if (pKF->mvuRight[get<0>(mit->second)] < 0) //Monocular
@@ -6472,7 +6472,7 @@ namespace ORB_SLAM3
                 if (pKF->isBad() || pKF->mnId > maxKFid || pKF->mnBALocalForKF != pMainKF->mnId || !pKF->GetMapPoint(get<0>(mit->second)))
                     continue;
 
-                // const cv::KeyPoint &kpUn = pKF->mvKeysUn[get<0>(mit->second)];
+                // const cv::KeyPoint &kpUn = pKF->mvKeys[get<0>(mit->second)];
                 //cout << "-- KeyPoint loads" << endl;
 
                 if (pKF->mvuRight[get<0>(mit->second)] < 0) //Monocular
@@ -7073,7 +7073,7 @@ namespace ORB_SLAM3
 
                 if (!pKFi->isBad())
                 {
-                    const cv::KeyPoint &kpUn = pKFi->mvKeysUn[get<0>(mit->second)];
+                    const cv::KeyPoint &kpUn = pKFi->mvKeys[get<0>(mit->second)];
 
                     if (pKFi->mvuRight[get<0>(mit->second)] < 0) // Monocular observation
                     {
@@ -7316,7 +7316,7 @@ namespace ORB_SLAM3
                         if (i < Nleft) // pair left-right
                             kpUn = pFrame->mvKeys[i];
                         else
-                            kpUn = pFrame->mvKeysUn[i];
+                            kpUn = pFrame->mvKeys[i];
 
                         nInitialMonoCorrespondences++;
                         pFrame->mvbOutlier[i] = false;
@@ -7350,7 +7350,7 @@ namespace ORB_SLAM3
                         nInitialStereoCorrespondences++;
                         pFrame->mvbOutlier[i] = false;
 
-                        kpUn = pFrame->mvKeysUn[i];
+                        kpUn = pFrame->mvKeys[i];
                         const float kp_ur = pFrame->mvuRight[i];
                         Eigen::Matrix<double, 3, 1> obs;
                         obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
@@ -7704,11 +7704,7 @@ namespace ORB_SLAM3
                     // Left monocular observation
                     if ((!bRight && pFrame->mvuRight[i] < 0) || i < Nleft)
                     {
-                        if (i < Nleft) // pair left-right
-                            kpUn = pFrame->mvKeys[i];
-                        else
-                            kpUn = pFrame->mvKeysUn[i];
-
+                        kpUn = pFrame->mvKeys[i];
                         nInitialMonoCorrespondences++;
                         pFrame->mvbOutlier[i] = false;
 
@@ -7741,7 +7737,7 @@ namespace ORB_SLAM3
                         nInitialStereoCorrespondences++;
                         pFrame->mvbOutlier[i] = false;
 
-                        kpUn = pFrame->mvKeysUn[i];
+                        kpUn = pFrame->mvKeys[i];
                         const float kp_ur = pFrame->mvuRight[i];
                         Eigen::Matrix<double, 3, 1> obs;
                         obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
@@ -7856,7 +7852,10 @@ namespace ORB_SLAM3
         optimizer.addEdge(ear);
 
         if (!pFp->mpcpi)
+        {
             Verbose::PrintMess("pFp->mpcpi does not exist!!!\nPrevious Frame " + to_string(pFp->mnId), Verbose::VERBOSITY_NORMAL);
+            std::cout << "pFp->mpcpi does not exist!!!\nPrevious Frame" << std::endl;
+        }
 
         EdgePriorPoseImu *ep = new EdgePriorPoseImu(pFp->mpcpi);
 

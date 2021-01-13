@@ -113,14 +113,14 @@ namespace ORB_SLAM3
                             bestDist2 = bestDist;
                             bestDist = dist;
                             bestLevel2 = bestLevel;
-                            bestLevel = (F.Nleft == -1) ? F.mvKeysUn[idx].octave
+                            bestLevel = (F.Nleft == -1) ? F.mvKeys[idx].octave
                                                         : (idx < F.Nleft) ? F.mvKeys[idx].octave
                                                                           : F.mvKeysRight[idx - F.Nleft].octave;
                             bestIdx = idx;
                         }
                         else if (dist < bestDist2)
                         {
-                            bestLevel2 = (F.Nleft == -1) ? F.mvKeysUn[idx].octave
+                            bestLevel2 = (F.Nleft == -1) ? F.mvKeys[idx].octave
                                                          : (idx < F.Nleft) ? F.mvKeys[idx].octave
                                                                            : F.mvKeysRight[idx - F.Nleft].octave;
                             bestDist2 = dist;
@@ -391,7 +391,7 @@ namespace ORB_SLAM3
                             vpMapPointMatches[bestIdxF] = pMP;
 
                             const cv::KeyPoint &kp =
-                                (!pKF->mpCamera2) ? pKF->mvKeysUn[realIdxKF] : (realIdxKF >= pKF->NLeft) ? pKF->mvKeysRight[realIdxKF - pKF->NLeft] : pKF->mvKeys[realIdxKF];
+                                (!pKF->mpCamera2) ? pKF->mvKeys[realIdxKF] : (realIdxKF >= pKF->NLeft) ? pKF->mvKeysRight[realIdxKF - pKF->NLeft] : pKF->mvKeys[realIdxKF];
 
                             if (mbCheckOrientation)
                             {
@@ -417,7 +417,7 @@ namespace ORB_SLAM3
                                 vpMapPointMatches[bestIdxFR] = pMP;
 
                                 const cv::KeyPoint &kp =
-                                    (!pKF->mpCamera2) ? pKF->mvKeysUn[realIdxKF] : (realIdxKF >= pKF->NLeft) ? pKF->mvKeysRight[realIdxKF - pKF->NLeft] : pKF->mvKeys[realIdxKF];
+                                    (!pKF->mpCamera2) ? pKF->mvKeys[realIdxKF] : (realIdxKF >= pKF->NLeft) ? pKF->mvKeysRight[realIdxKF - pKF->NLeft] : pKF->mvKeys[realIdxKF];
 
                                 if (mbCheckOrientation)
                                 {
@@ -563,7 +563,7 @@ namespace ORB_SLAM3
                 if (vpMatched[idx])
                     continue;
 
-                const int &kpLevel = pKF->mvKeysUn[idx].octave;
+                const int &kpLevel = pKF->mvKeys[idx].octave;
 
                 if (kpLevel < nPredictedLevel - 1 || kpLevel > nPredictedLevel)
                     continue;
@@ -679,7 +679,7 @@ namespace ORB_SLAM3
                 if (vpMatched[idx])
                     continue;
 
-                const int &kpLevel = pKF->mvKeysUn[idx].octave;
+                const int &kpLevel = pKF->mvKeys[idx].octave;
 
                 if (kpLevel < nPredictedLevel - 1 || kpLevel > nPredictedLevel)
                     continue;
@@ -709,19 +709,19 @@ namespace ORB_SLAM3
     int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f> &vbPrevMatched, vector<int> &vnMatches12, int windowSize)
     {
         int nmatches = 0;
-        vnMatches12 = vector<int>(F1.mvKeysUn.size(), -1);
+        vnMatches12 = vector<int>(F1.mvKeys.size(), -1);
 
         vector<int> rotHist[HISTO_LENGTH];
         for (int i = 0; i < HISTO_LENGTH; i++)
             rotHist[i].reserve(500);
         const float factor = 1.0f / HISTO_LENGTH;
 
-        vector<int> vMatchedDistance(F2.mvKeysUn.size(), INT_MAX);
-        vector<int> vnMatches21(F2.mvKeysUn.size(), -1);
+        vector<int> vMatchedDistance(F2.mvKeys.size(), INT_MAX);
+        vector<int> vnMatches21(F2.mvKeys.size(), -1);
 
-        for (size_t i1 = 0, iend1 = F1.mvKeysUn.size(); i1 < iend1; i1++)
+        for (size_t i1 = 0, iend1 = F1.mvKeys.size(); i1 < iend1; i1++)
         {
-            cv::KeyPoint kp1 = F1.mvKeysUn[i1];
+            cv::KeyPoint kp1 = F1.mvKeys[i1];
             int level1 = kp1.octave;
             if (level1 > 0)
                 continue;
@@ -776,7 +776,7 @@ namespace ORB_SLAM3
 
                     if (mbCheckOrientation)
                     {
-                        float rot = F1.mvKeysUn[i1].angle - F2.mvKeysUn[bestIdx2].angle;
+                        float rot = F1.mvKeys[i1].angle - F2.mvKeys[bestIdx2].angle;
                         if (rot < 0.0)
                             rot += 360.0f;
                         int bin = round(rot * factor);
@@ -816,19 +816,19 @@ namespace ORB_SLAM3
         //Update prev matched
         for (size_t i1 = 0, iend1 = vnMatches12.size(); i1 < iend1; i1++)
             if (vnMatches12[i1] >= 0)
-                vbPrevMatched[i1] = F2.mvKeysUn[vnMatches12[i1]].pt;
+                vbPrevMatched[i1] = F2.mvKeys[vnMatches12[i1]].pt;
 
         return nmatches;
     }
 
     int ORBmatcher::SearchByBoW(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &vpMatches12)
     {
-        const vector<cv::KeyPoint> &vKeysUn1 = pKF1->mvKeysUn;
+        const vector<cv::KeyPoint> &vKeysUn1 = pKF1->mvKeys;
         const DBoW2::FeatureVector &vFeatVec1 = pKF1->mFeatVec;
         const vector<MapPoint *> vpMapPoints1 = pKF1->GetMapPointMatches();
         const cv::Mat &Descriptors1 = pKF1->mDescriptors;
 
-        const vector<cv::KeyPoint> &vKeysUn2 = pKF2->mvKeysUn;
+        const vector<cv::KeyPoint> &vKeysUn2 = pKF2->mvKeys;
         const DBoW2::FeatureVector &vFeatVec2 = pKF2->mFeatVec;
         const vector<MapPoint *> vpMapPoints2 = pKF2->GetMapPointMatches();
         const cv::Mat &Descriptors2 = pKF2->mDescriptors;
@@ -856,7 +856,7 @@ namespace ORB_SLAM3
                 for (size_t i1 = 0, iend1 = f1it->second.size(); i1 < iend1; i1++)
                 {
                     const size_t idx1 = f1it->second[i1];
-                    if (pKF1->NLeft != -1 && idx1 >= pKF1->mvKeysUn.size())
+                    if (pKF1->NLeft != -1 && idx1 >= pKF1->mvKeys.size())
                     {
                         continue;
                     }
@@ -877,7 +877,7 @@ namespace ORB_SLAM3
                     {
                         const size_t idx2 = f2it->second[i2];
 
-                        if (pKF2->NLeft != -1 && idx2 >= pKF2->mvKeysUn.size())
+                        if (pKF2->NLeft != -1 && idx2 >= pKF2->mvKeys.size())
                         {
                             continue;
                         }
@@ -1049,7 +1049,7 @@ namespace ORB_SLAM3
                         if (!bStereo1)
                             continue;
 
-                    const cv::KeyPoint &kp1 = (pKF1->NLeft == -1) ? pKF1->mvKeysUn[idx1]
+                    const cv::KeyPoint &kp1 = (pKF1->NLeft == -1) ? pKF1->mvKeys[idx1]
                                                                   : (idx1 < pKF1->NLeft) ? pKF1->mvKeys[idx1]
                                                                                          : pKF1->mvKeysRight[idx1 - pKF1->NLeft];
 
@@ -1084,7 +1084,7 @@ namespace ORB_SLAM3
                         if (dist > TH_LOW || dist > bestDist)
                             continue;
 
-                        const cv::KeyPoint &kp2 = (pKF2->NLeft == -1) ? pKF2->mvKeysUn[idx2]
+                        const cv::KeyPoint &kp2 = (pKF2->NLeft == -1) ? pKF2->mvKeys[idx2]
                                                                       : (idx2 < pKF2->NLeft) ? pKF2->mvKeys[idx2]
                                                                                              : pKF2->mvKeysRight[idx2 - pKF2->NLeft];
                         const bool bRight2 = (pKF2->NLeft == -1 || idx2 < pKF2->NLeft) ? false
@@ -1145,7 +1145,7 @@ namespace ORB_SLAM3
 
                     if (bestIdx2 >= 0)
                     {
-                        const cv::KeyPoint &kp2 = (pKF2->NLeft == -1) ? pKF2->mvKeysUn[bestIdx2]
+                        const cv::KeyPoint &kp2 = (pKF2->NLeft == -1) ? pKF2->mvKeys[bestIdx2]
                                                                       : (bestIdx2 < pKF2->NLeft) ? pKF2->mvKeys[bestIdx2]
                                                                                                  : pKF2->mvKeysRight[bestIdx2 - pKF2->NLeft];
                         vMatches12[idx1] = bestIdx2;
@@ -1266,7 +1266,7 @@ namespace ORB_SLAM3
                     if (pMP1)
                         continue;
 
-                    const cv::KeyPoint &kp1 = (pKF1->NLeft == -1) ? pKF1->mvKeysUn[idx1]
+                    const cv::KeyPoint &kp1 = (pKF1->NLeft == -1) ? pKF1->mvKeys[idx1]
                                                                   : (idx1 < pKF1->NLeft) ? pKF1->mvKeys[idx1]
                                                                                          : pKF1->mvKeysRight[idx1 - pKF1->NLeft];
 
@@ -1299,7 +1299,7 @@ namespace ORB_SLAM3
                             continue;
                         }
 
-                        const cv::KeyPoint &kp2 = (pKF2->NLeft == -1) ? pKF2->mvKeysUn[idx2]
+                        const cv::KeyPoint &kp2 = (pKF2->NLeft == -1) ? pKF2->mvKeys[idx2]
                                                                       : (idx2 < pKF2->NLeft) ? pKF2->mvKeys[idx2]
                                                                                              : pKF2->mvKeysRight[idx2 - pKF2->NLeft];
                         const bool bRight2 = (pKF2->NLeft == -1 || idx2 < pKF2->NLeft) ? false
@@ -1338,7 +1338,7 @@ namespace ORB_SLAM3
 
                     if (bestIdx2 >= 0)
                     {
-                        const cv::KeyPoint &kp2 = (pKF2->NLeft == -1) ? pKF2->mvKeysUn[bestIdx2]
+                        const cv::KeyPoint &kp2 = (pKF2->NLeft == -1) ? pKF2->mvKeys[bestIdx2]
                                                                       : (bestIdx2 < pKF2->NLeft) ? pKF2->mvKeys[bestIdx2]
                                                                                                  : pKF2->mvKeysRight[bestIdx2 - pKF2->NLeft];
                         vMatches12[idx1] = bestIdx2;
@@ -1533,7 +1533,7 @@ namespace ORB_SLAM3
             for (vector<size_t>::const_iterator vit = vIndices.begin(), vend = vIndices.end(); vit != vend; vit++)
             {
                 size_t idx = *vit;
-                const cv::KeyPoint &kp = (pKF->NLeft == -1) ? pKF->mvKeysUn[idx]
+                const cv::KeyPoint &kp = (pKF->NLeft == -1) ? pKF->mvKeys[idx]
                                                             : (!bRight) ? pKF->mvKeys[idx]
                                                                         : pKF->mvKeysRight[idx];
 
@@ -1707,7 +1707,7 @@ namespace ORB_SLAM3
             for (vector<size_t>::const_iterator vit = vIndices.begin(); vit != vIndices.end(); vit++)
             {
                 const size_t idx = *vit;
-                const int &kpLevel = pKF->mvKeysUn[idx].octave;
+                const int &kpLevel = pKF->mvKeys[idx].octave;
 
                 if (kpLevel < nPredictedLevel - 1 || kpLevel > nPredictedLevel)
                     continue;
@@ -1847,7 +1847,7 @@ namespace ORB_SLAM3
             {
                 const size_t idx = *vit;
 
-                const cv::KeyPoint &kp = pKF2->mvKeysUn[idx];
+                const cv::KeyPoint &kp = pKF2->mvKeys[idx];
 
                 if (kp.octave < nPredictedLevel - 1 || kp.octave > nPredictedLevel)
                     continue;
@@ -1927,7 +1927,7 @@ namespace ORB_SLAM3
             {
                 const size_t idx = *vit;
 
-                const cv::KeyPoint &kp = pKF1->mvKeysUn[idx];
+                const cv::KeyPoint &kp = pKF1->mvKeys[idx];
 
                 if (kp.octave < nPredictedLevel - 1 || kp.octave > nPredictedLevel)
                     continue;
@@ -2077,11 +2077,11 @@ namespace ORB_SLAM3
 
                         if (mbCheckOrientation)
                         {
-                            cv::KeyPoint kpLF = (LastFrame.Nleft == -1) ? LastFrame.mvKeysUn[i]
+                            cv::KeyPoint kpLF = (LastFrame.Nleft == -1) ? LastFrame.mvKeys[i]
                                                                         : (i < LastFrame.Nleft) ? LastFrame.mvKeys[i]
                                                                                                 : LastFrame.mvKeysRight[i - LastFrame.Nleft];
 
-                            cv::KeyPoint kpCF = (CurrentFrame.Nleft == -1) ? CurrentFrame.mvKeysUn[bestIdx2]
+                            cv::KeyPoint kpCF = (CurrentFrame.Nleft == -1) ? CurrentFrame.mvKeys[bestIdx2]
                                                                            : (bestIdx2 < CurrentFrame.Nleft) ? CurrentFrame.mvKeys[bestIdx2]
                                                                                                              : CurrentFrame.mvKeysRight[bestIdx2 - CurrentFrame.Nleft];
                             float rot = kpLF.angle - kpCF.angle;
@@ -2144,7 +2144,7 @@ namespace ORB_SLAM3
                             nmatches++;
                             if (mbCheckOrientation)
                             {
-                                cv::KeyPoint kpLF = (LastFrame.Nleft == -1) ? LastFrame.mvKeysUn[i]
+                                cv::KeyPoint kpLF = (LastFrame.Nleft == -1) ? LastFrame.mvKeys[i]
                                                                             : (i < LastFrame.Nleft) ? LastFrame.mvKeys[i]
                                                                                                     : LastFrame.mvKeysRight[i - LastFrame.Nleft];
 
@@ -2275,7 +2275,7 @@ namespace ORB_SLAM3
 
                         if (mbCheckOrientation)
                         {
-                            float rot = pKF->mvKeysUn[i].angle - CurrentFrame.mvKeysUn[bestIdx2].angle;
+                            float rot = pKF->mvKeys[i].angle - CurrentFrame.mvKeys[bestIdx2].angle;
                             if (rot < 0.0)
                                 rot += 360.0f;
                             int bin = round(rot * factor);

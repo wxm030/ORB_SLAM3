@@ -158,7 +158,7 @@ namespace ORB_SLAM3
         void ComputeKeyPointsDSOSingleLevel(
             std::vector<cv::KeyPoint> &allKeypoints,
             std::vector<cv::KeyPoint> &exist_kps);
-        int mnGridSize{-1}; // dynamic grid size used in DSO
+        int mnGridSize; // dynamic grid size used in DSO
         cv::Mat mOccupancy;
 
         std::vector<cv::Point> pattern;

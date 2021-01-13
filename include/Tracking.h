@@ -267,6 +267,7 @@ namespace ORB_SLAM3
         KeyFrame *mpReferenceKF;
         std::vector<KeyFrame *> mvpLocalKeyFrames;
         std::vector<MapPoint *> mvpLocalMapPoints;
+        int update_from_frame_id{-1};
         //for track local Map direct method
         std::set<MapPoint *> mvpDirectMapPointsCache; // 缓存之前匹配到的地图点
 

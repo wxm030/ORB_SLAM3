@@ -214,7 +214,6 @@ namespace ORB_SLAM3
             ar &const_cast<int &>(N);
             // KeyPoints
             serializeVectorKeyPoints(ar, mvKeys, version);
-            serializeVectorKeyPoints(ar, mvKeysUn, version);
             ar &const_cast<vector<float> &>(mvuRight);
             ar &const_cast<vector<float> &>(mvDepth);
             serializeMatrix(ar, mDescriptors, version);
@@ -286,8 +285,6 @@ namespace ORB_SLAM3
         KeyFrame();
         KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB);
 
-        inline Eigen::Vector3d pos() const { return Eigen::Vector3d(Cw.at<float>(0, 0), Cw.at<float>(1, 0), Cw.at<float>(2, 0)); } //should be mtwc
-
         // Pose functions
         void SetPose(const cv::Mat &Tcw);
         void SetVelocity(const cv::Mat &Vw_);
@@ -352,7 +349,6 @@ namespace ORB_SLAM3
 
         // Image
         bool IsInImage(const float &x, const float &y) const;
-        bool isInFrame(MapPoint *pMP, Eigen::Vector2d &p2d, int boundary);
 
         // Enable/Disable bad flag changes
         void SetNotErase();
@@ -502,7 +498,6 @@ namespace ORB_SLAM3
 
         // KeyPoints, stereo coordinate and descriptors (all associated by an index)
         const std::vector<cv::KeyPoint> mvKeys;
-        const std::vector<cv::KeyPoint> mvKeysUn;
         const std::vector<float> mvuRight; // negative value for monocular points
         const std::vector<float> mvDepth;  // negative value for monocular points
         const cv::Mat mDescriptors;

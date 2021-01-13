@@ -71,8 +71,6 @@ namespace ORB_SLAM3
         // Destructor
         // ~Frame();
 
-        inline Eigen::Vector3d pos() const { return Eigen::Vector3d(mtcw.at<float>(0, 0), mtcw.at<float>(1, 0), mtcw.at<float>(2, 0)); } //should be mtwc
-
         // 计算图像金字塔
         void ComputeImagePyramid();
 
@@ -158,7 +156,6 @@ namespace ORB_SLAM3
         // Check if a MapPoint is in the frustum of the camera
         // and fill variables of the MapPoint to be used by the tracking
         bool isInFrustum(MapPoint *pMP, float viewingCosLimit);
-        bool isInFrame(MapPoint *pMP, Eigen::Vector2d &p2d, int boundary = 0); //检查2D点是否在图像范围内
 
         bool ProjectPointDistort(MapPoint *pMP, cv::Point2f &kp, float &u, float &v);
 
@@ -230,11 +227,8 @@ namespace ORB_SLAM3
         // Number of KeyPoints.
         int N;
 
-        // Vector of keypoints (original for visualization) and undistorted (actually used by the system).
-        // In the stereo case, mvKeysUn is redundant as images must be rectified.
-        // In the RGB-D case, RGB images can be distorted.
+        // Vector of keypoints (original for visualization) , mvKeysUn is redundant as the input images have been rectified.
         std::vector<cv::KeyPoint> mvKeys, mvKeysRight;
-        std::vector<cv::KeyPoint> mvKeysUn;
 
         // 是否已经提取了特征
         bool mbFeatureExtracted = false; // flag to indicate if the ORB features are detected
@@ -324,11 +318,6 @@ namespace ORB_SLAM3
 
         // 传感器类型
         SensorType mSensor;
-
-        // Undistort keypoints given OpenCV distortion parameters.
-        // Only for the RGB-D case. Stereo must be already rectified!
-        // (called in the constructor).
-        void UndistortKeyPoints();
 
     private:
         // Computes image bounds for the undistorted image (called in the constructor).

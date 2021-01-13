@@ -87,7 +87,9 @@ namespace ORB_SLAM3
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
                 // Triangulate new MapPoints
+                std::cout << "CreateNewMapPoints before 111111111111111111111111111111111111111    =" << mlpRecentAddedMapPoints.size() << std::endl;
                 CreateNewMapPoints();
+                std::cout << "CreateNewMapPoints after 111111111111111111111111111111111111111    =" << mlpRecentAddedMapPoints.size() << std::endl;
                 std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
 
                 // Save here:
@@ -145,11 +147,13 @@ namespace ORB_SLAM3
 
                             bool bLarge = ((mpTracker->GetMatchesInliers() > 75) && mbMonocular) || ((mpTracker->GetMatchesInliers() > 100) && !mbMonocular);
                             Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(), bLarge, !mpCurrentKeyFrame->GetMap()->GetIniertialBA2());
+                            std::cout << "Optimizer::LocalInertialBA LocalMap 111111" << std::endl;
                         }
                         else
                         {
                             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
                             Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(), num_FixedKF_BA);
+                            std::cout << "Optimizer::LocalBundleAdjustment 2222 " << std::endl;
                             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
                         }
                     }
@@ -160,9 +164,15 @@ namespace ORB_SLAM3
                     if (!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial)
                     {
                         if (mbMonocular)
+                        {
+                            std::cout << "InitializeIMU(1e2, 1e10, true)  1111 " << std::endl;
                             InitializeIMU(1e2, 1e10, true);
+                        }
                         else
+                        {
+                            std::cout << "InitializeIMU(1e2, 1e5, true)  2222 " << std::endl;
                             InitializeIMU(1e2, 1e5, true);
+                        }
                     }
 
                     // Check redundant local Keyframes
@@ -181,9 +191,13 @@ namespace ORB_SLAM3
                                     cout << "start VIBA 1" << endl;
                                     mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                     if (mbMonocular)
+                                    {
                                         InitializeIMU(1.f, 1e5, true); // 1.f, 1e5
+                                    }
                                     else
+                                    {
                                         InitializeIMU(1.f, 1e5, true); // 1.f, 1e5
+                                    }
 
                                     cout << "end VIBA 1" << endl;
                                 }
@@ -215,7 +229,9 @@ namespace ORB_SLAM3
                             {
                                 cout << "start scale ref" << endl;
                                 if (mbMonocular)
+                                {
                                     ScaleRefinement();
+                                }
                                 cout << "end scale ref" << endl;
                             }
                         }
@@ -482,7 +498,7 @@ namespace ORB_SLAM3
                 const int &idx1 = vMatchedIndices[ikp].first;
                 const int &idx2 = vMatchedIndices[ikp].second;
 
-                const cv::KeyPoint &kp1 = (mpCurrentKeyFrame->NLeft == -1) ? mpCurrentKeyFrame->mvKeysUn[idx1]
+                const cv::KeyPoint &kp1 = (mpCurrentKeyFrame->NLeft == -1) ? mpCurrentKeyFrame->mvKeys[idx1]
                                                                            : (idx1 < mpCurrentKeyFrame->NLeft) ? mpCurrentKeyFrame->mvKeys[idx1]
                                                                                                                : mpCurrentKeyFrame->mvKeysRight[idx1 - mpCurrentKeyFrame->NLeft];
                 const float kp1_ur = mpCurrentKeyFrame->mvuRight[idx1];
@@ -490,7 +506,7 @@ namespace ORB_SLAM3
                 const bool bRight1 = (mpCurrentKeyFrame->NLeft == -1 || idx1 < mpCurrentKeyFrame->NLeft) ? false
                                                                                                          : true;
 
-                const cv::KeyPoint &kp2 = (pKF2->NLeft == -1) ? pKF2->mvKeysUn[idx2]
+                const cv::KeyPoint &kp2 = (pKF2->NLeft == -1) ? pKF2->mvKeys[idx2]
                                                               : (idx2 < pKF2->NLeft) ? pKF2->mvKeys[idx2]
                                                                                      : pKF2->mvKeysRight[idx2 - pKF2->NLeft];
 
@@ -997,7 +1013,7 @@ namespace ORB_SLAM3
                         nMPs++;
                         if (pMP->Observations() > thObs)
                         {
-                            const int &scaleLevel = (pKF->NLeft == -1) ? pKF->mvKeysUn[i].octave
+                            const int &scaleLevel = (pKF->NLeft == -1) ? pKF->mvKeys[i].octave
                                                                        : (i < pKF->NLeft) ? pKF->mvKeys[i].octave
                                                                                           : pKF->mvKeysRight[i].octave;
                             const map<KeyFrame *, tuple<int, int>> observations = pMP->GetObservations();
@@ -1011,7 +1027,7 @@ namespace ORB_SLAM3
                                 int leftIndex = get<0>(indexes), rightIndex = get<1>(indexes);
                                 int scaleLeveli = -1;
                                 if (pKFi->NLeft == -1)
-                                    scaleLeveli = pKFi->mvKeysUn[leftIndex].octave;
+                                    scaleLeveli = pKFi->mvKeys[leftIndex].octave;
                                 else
                                 {
                                     if (leftIndex != -1)
@@ -1290,12 +1306,18 @@ namespace ORB_SLAM3
             cvRwg = IMU::ExpSO3(vzg);
             mRwg = Converter::toMatrix3d(cvRwg);
             mTinit = mpCurrentKeyFrame->mTimeStamp - mFirstTs;
+            std::cout << "imu init process 1111  " << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
+                      << mRwg << std::endl
+                      << mTinit << std::endl;
         }
         else
         {
             mRwg = Eigen::Matrix3d::Identity();
             mbg = Converter::toVector3d(mpCurrentKeyFrame->GetGyroBias());
             mba = Converter::toVector3d(mpCurrentKeyFrame->GetAccBias());
+            std::cout << "imu init process 2222  " << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
+                      << mRwg << std::endl
+                      << mbg << "," << mba << std::endl;
         }
 
         mScale = 1.0;
@@ -1304,6 +1326,11 @@ namespace ORB_SLAM3
 
         std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
         Optimizer::InertialOptimization(mpAtlas->GetCurrentMap(), mRwg, mScale, mbg, mba, mbMonocular, infoInertial, false, false, priorG, priorA);
+
+        std::cout << "imu init process 3333  Optimizer::InertialOptimization   mScale ==" << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
+                  << mScale << std::endl
+                  << mbg << "," << mba << std::endl;
+
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
         /*cout << "scale after inertial-only optimization: " << mScale << endl;
@@ -1325,16 +1352,22 @@ namespace ORB_SLAM3
         {
             mpAtlas->GetCurrentMap()->ApplyScaledRotation(Converter::toCvMat(mRwg).t(), mScale, true);
             mpTracker->UpdateFrameIMU(mScale, vpKF[0]->GetImuBias(), mpCurrentKeyFrame);
+            std::cout << "imu init process 4444  更新地图的尺度以及当前帧的imu信息" << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
+                      << mScale << std::endl;
         }
         std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
 
         // Check if initialization OK
         if (!mpAtlas->isImuInitialized())
+        {
+            std::cout << "imu init process 5555  Check if initialization OK" << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
+                      << std::endl;
             for (int i = 0; i < N; i++)
             {
                 KeyFrame *pKF2 = vpKF[i];
                 pKF2->bImu = true;
             }
+        }
 
         /*cout << "Before GIBA: " << endl;
     cout << "ba: " << mpCurrentKeyFrame->GetAccBias() << endl;
@@ -1344,9 +1377,18 @@ namespace ORB_SLAM3
         if (bFIBA)
         {
             if (priorA != 0.f)
+            {
+                std::cout << "imu init process 6666  FullInertialBA" << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
+                          << mScale << std::endl;
                 Optimizer::FullInertialBA(mpAtlas->GetCurrentMap(), 100, false, 0, NULL, true, priorG, priorA);
+            }
+
             else
+            {
+                std::cout << "imu init process 7777  FullInertialBA" << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
+                          << mScale << std::endl;
                 Optimizer::FullInertialBA(mpAtlas->GetCurrentMap(), 100, false, 0, NULL, false);
+            }
         }
 
         std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
@@ -1359,6 +1401,9 @@ namespace ORB_SLAM3
             mpAtlas->SetImuInitialized();
             mpTracker->t0IMU = mpTracker->mCurrentFrame.mTimeStamp;
             mpCurrentKeyFrame->bImu = true;
+
+            std::cout << "imu init process 8888  mpAtlas->SetImuInitialized();" << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
+                      << mScale << std::endl;
         }
 
         mbNewInit = true;
@@ -1382,7 +1427,8 @@ namespace ORB_SLAM3
     double t_update = std::chrono::duration_cast<std::chrono::duration<double> >(t3 - t2).count();
     double t_viba = std::chrono::duration_cast<std::chrono::duration<double> >(t5 - t4).count();
     cout << t_inertial_only << ", " << t_update << ", " << t_viba << endl;*/
-
+        std::cout << "imu init process 9999  mpCurrentKeyFrame->GetMap()->IncreaseChangeIndex()" << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
+                  << mScale << std::endl;
         mpCurrentKeyFrame->GetMap()->IncreaseChangeIndex();
 
         return;

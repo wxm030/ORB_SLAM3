@@ -32,7 +32,7 @@ namespace ORB_SLAM3
                            mnTrackReferenceForFrame(0), mnFuseTargetForKF(0), mnBALocalForKF(0), mnBAFixedForKF(0), mnBALocalForMerge(0),
                            mnLoopQuery(0), mnLoopWords(0), mnRelocQuery(0), mnRelocWords(0), mnMergeQuery(0), mnMergeWords(0), mnBAGlobalForKF(0),
                            fx(0), fy(0), cx(0), cy(0), invfx(0), invfy(0), mnPlaceRecognitionQuery(0), mnPlaceRecognitionWords(0), mPlaceRecognitionScore(0),
-                           mbf(0), mb(0), mThDepth(0), N(0), mvKeys(static_cast<vector<cv::KeyPoint>>(NULL)), mvKeysUn(static_cast<vector<cv::KeyPoint>>(NULL)),
+                           mbf(0), mb(0), mThDepth(0), N(0), mvKeys(static_cast<vector<cv::KeyPoint>>(NULL)),
                            mvuRight(static_cast<vector<float>>(NULL)), mvDepth(static_cast<vector<float>>(NULL)), /*mDescriptors(NULL),*/
                            /*mBowVec(NULL), mFeatVec(NULL),*/ mnScaleLevels(0), mfScaleFactor(0),
                            mfLogScaleFactor(0), mvScaleFactors(0), mvLevelSigma2(0),
@@ -48,7 +48,7 @@ namespace ORB_SLAM3
                                                                        mnTrackReferenceForFrame(0), mnFuseTargetForKF(0), mnBALocalForKF(0), mnBAFixedForKF(0), mnBALocalForMerge(0),
                                                                        mnLoopQuery(0), mnLoopWords(0), mnRelocQuery(0), mnRelocWords(0), mnBAGlobalForKF(0), mnPlaceRecognitionQuery(0), mnPlaceRecognitionWords(0), mPlaceRecognitionScore(0),
                                                                        fx(F.fx), fy(F.fy), cx(F.cx), cy(F.cy), invfx(F.invfx), invfy(F.invfy),
-                                                                       mbf(F.mbf), mb(F.mb), mThDepth(F.mThDepth), N(F.N), mvKeys(F.mvKeys), mvKeysUn(F.mvKeysUn),
+                                                                       mbf(F.mbf), mb(F.mb), mThDepth(F.mThDepth), N(F.N), mvKeys(F.mvKeys),
                                                                        mvuRight(F.mvuRight), mvDepth(F.mvDepth), mDescriptors(F.mDescriptors.clone()),
                                                                        mBowVec(F.mBowVec), mFeatVec(F.mFeatVec), mnScaleLevels(F.mnScaleLevels), mfScaleFactor(F.mfScaleFactor),
                                                                        mfLogScaleFactor(F.mfLogScaleFactor), mvScaleFactors(F.mvScaleFactors), mvLevelSigma2(F.mvLevelSigma2),
@@ -795,7 +795,7 @@ namespace ORB_SLAM3
                 const vector<size_t> vCell = (!bRight) ? mGrid[ix][iy] : mGridRight[ix][iy];
                 for (size_t j = 0, jend = vCell.size(); j < jend; j++)
                 {
-                    const cv::KeyPoint &kpUn = (NLeft == -1) ? mvKeysUn[vCell[j]]
+                    const cv::KeyPoint &kpUn = (NLeft == -1) ? mvKeys[vCell[j]]
                                                              : (!bRight) ? mvKeys[vCell[j]]
                                                                          : mvKeysRight[vCell[j]];
                     const float distx = kpUn.pt.x - x;
@@ -813,28 +813,6 @@ namespace ORB_SLAM3
     bool KeyFrame::IsInImage(const float &x, const float &y) const
     {
         return (x >= mnMinX && x < mnMaxX && y >= mnMinY && y < mnMaxY);
-    }
-
-    bool KeyFrame::isInFrame(MapPoint *pMP, Eigen::Vector2d &p2d, int boundary)
-    {
-        // 3D in absolute coordinates
-        cv::Mat P = pMP->GetWorldPos();
-        cv::Mat Rcw = Tcw.rowRange(0, 3).colRange(0, 3);
-        cv::Mat tcw = Tcw.rowRange(0, 3).col(3);
-        // 3D in camera coordinates
-        const cv::Mat Pc = Rcw * P + tcw;
-        const float Pc_dist = cv::norm(Pc);
-        // Check positive depth
-        const float &PcZ = Pc.at<float>(2);
-        const float invz = 1.0f / PcZ;
-        if (PcZ < 0.0f)
-            return false;
-
-        const cv::Point2f uv = mpCamera->project(Pc);
-        p2d = {uv.x, uv.y};
-        if (uv.x >= boundary && uv.x < mnMaxX - boundary && uv.y >= boundary && uv.y < mnMaxY - boundary)
-            return true;
-        return false;
     }
 
     cv::Mat KeyFrame::UnprojectStereo(int i)

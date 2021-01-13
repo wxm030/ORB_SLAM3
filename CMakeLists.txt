@@ -52,15 +52,16 @@ MESSAGE(${Sophus_INCLUDE_DIR})
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
-FIND_PACKAGE(fast REQUIRED)
+#FIND_PACKAGE(fast REQUIRED)
 
 include_directories(
 ${Sophus_INCLUDE_DIR}
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
+${PROJECT_SOURCE_DIR}/Thirdparty/fast/include
 ${PROJECT_SOURCE_DIR}/include/CameraModels
 ${EIGEN3_INCLUDE_DIR}
-${fast_INCLUDE_DIRS}
+#${fast_INCLUDE_DIRS}
 ${Pangolin_INCLUDE_DIRS}
 )
 
@@ -133,9 +134,10 @@ target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${Sophus_LIBRARIES}
 ${EIGEN3_LIBS}
-${fast_LIBRARIES}
+#${fast_LIBRARIES}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
+${PROJECT_SOURCE_DIR}/Thirdparty/fast/build/libfast.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 -lboost_serialization
 -lcrypto

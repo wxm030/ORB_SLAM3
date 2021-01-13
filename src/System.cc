@@ -221,7 +221,7 @@ namespace ORB_SLAM3
         unique_lock<mutex> lock2(mMutexState);
         mTrackingState = mpTracker->mState;
         mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
+        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeys;
 
         return Tcw;
     }
@@ -279,7 +279,7 @@ namespace ORB_SLAM3
         unique_lock<mutex> lock2(mMutexState);
         mTrackingState = mpTracker->mState;
         mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
+        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeys;
         return Tcw;
     }
 
@@ -341,7 +341,7 @@ namespace ORB_SLAM3
         unique_lock<mutex> lock2(mMutexState);
         mTrackingState = mpTracker->mState;
         mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
+        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeys;
 
         return Tcw;
     }

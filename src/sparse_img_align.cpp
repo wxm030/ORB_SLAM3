@@ -38,7 +38,7 @@ namespace ORB_SLAM3
   {
     reset();
 
-    if (ref_frame->mvKeysUn.size() == 0)
+    if (ref_frame->mvKeys.size() == 0)
     {
       std::cout << "SparseImgAlign: no features to track!" << std::endl;
       return 0;
@@ -46,18 +46,7 @@ namespace ORB_SLAM3
 
     ref_frame_ = ref_frame;
     cur_frame_ = cur_frame;
-    ref_patch_cache_ = cv::Mat(ref_frame_->mvKeysUn.size(), patch_area_, CV_32F);
-
-    for (size_t i = 0; i < ref_frame_->mvKeysUn.size(); i++)
-    {
-      if (ref_frame_->mvbOutlier[i])
-      {
-        continue;
-      }
-      // check if reference with patch size is within image
-      const float u_ref = ref_frame_->mvKeysUn[i].pt.x;
-      const float v_ref = ref_frame_->mvKeysUn[i].pt.y;
-    }
+    ref_patch_cache_ = cv::Mat(ref_frame_->mvKeys.size(), patch_area_, CV_32F);
 
     jacobian_cache_.resize(Eigen::NoChange, ref_patch_cache_.rows * patch_area_);
     visible_fts_.resize(ref_patch_cache_.rows, false); // TODO: should it be reset at each level?
@@ -89,9 +78,6 @@ namespace ORB_SLAM3
 
   void SparseImgAlign::precomputeReferencePatches()
   {
-
-    // std::cout << "SparseImgAlign: level_ == !" << level_ <<std::endl;
-
     const int border = patch_halfsize_ + 1;
     const cv::Mat &ref_img = ref_frame_->mvImagePyramid[level_];
     const int stride = ref_img.cols;
@@ -103,7 +89,7 @@ namespace ORB_SLAM3
 
     // std::cout << "SparseImgAlign: ref_img == !" << ref_img.cols << "," << ref_img.rows << std::endl;
 
-    // std::cout << "SparseImgAlign: ref_frame_->mvKeysUn.size() == !" << ref_frame_->mvKeys.size() << std::endl;
+    // std::cout << "SparseImgAlign: ref_frame_->mvKeys.size() == !" << ref_frame_->mvKeys.size() << std::endl;
 
     for (size_t i = 0; i < ref_frame_->mvKeys.size(); i++, ++feature_counter, ++visiblity_it)
     {
