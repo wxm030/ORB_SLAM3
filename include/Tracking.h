@@ -168,6 +168,9 @@ namespace ORB_SLAM3
         int mUseDirectSVO; //use Direct method or ORB descriptor method th match in front end
         int mnCacheHitTh;  // track local map direct cache 命中点的阈值
 
+        //Input Imu bias
+        IMU::Bias mInputBias;
+
     protected:
         // Main tracking function. It is independent of the input sensor.
         void Track();

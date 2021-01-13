@@ -1978,8 +1978,11 @@ namespace ORB_SLAM3
         {
             // Map is not completly initialized
             Eigen::Vector3d bg, ba;
-            bg << 0., 0., 0.;
-            ba << 0., 0., 0.;
+            // bg << 0., 0., 0.;
+            // ba << 0., 0., 0.;
+            bg << mpTracker->mInputBias.bwx, mpTracker->mInputBias.bwy, mpTracker->mInputBias.bwz;
+            ba << mpTracker->mInputBias.bax, mpTracker->mInputBias.bay, mpTracker->mInputBias.baz;
+
             Optimizer::InertialOptimization(pCurrentMap, bg, ba);
             IMU::Bias b(ba[0], ba[1], ba[2], bg[0], bg[1], bg[2]);
             unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);

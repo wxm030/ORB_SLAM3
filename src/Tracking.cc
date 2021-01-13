@@ -908,7 +908,68 @@ namespace ORB_SLAM3
             std::cerr << "*IMU.AccWalk parameter doesn't exist or is not a real number*" << std::endl;
             b_miss_params = true;
         }
-
+        float bias_gyro_x, bias_gyro_y, bias_gyro_z;
+        float bias_Acc_x, bias_Acc_y, bias_Acc_z;
+        node = fSettings["IMU.Bias_wx"];
+        if (!node.empty() && node.isReal())
+        {
+            bias_gyro_x = node.real();
+        }
+        else
+        {
+            std::cerr << "*IMU.Bias_wx parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
+        node = fSettings["IMU.Bias_wy"];
+        if (!node.empty() && node.isReal())
+        {
+            bias_gyro_y = node.real();
+        }
+        else
+        {
+            std::cerr << "*IMU.Bias_wy parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
+        node = fSettings["IMU.Bias_wz"];
+        if (!node.empty() && node.isReal())
+        {
+            bias_gyro_z = node.real();
+        }
+        else
+        {
+            std::cerr << "*IMU.Bias_wz parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
+        node = fSettings["IMU.Bias_ax"];
+        if (!node.empty() && node.isReal())
+        {
+            bias_Acc_x = node.real();
+        }
+        else
+        {
+            std::cerr << "*IMU.Bias_ax parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
+        node = fSettings["IMU.Bias_ay"];
+        if (!node.empty() && node.isReal())
+        {
+            bias_Acc_y = node.real();
+        }
+        else
+        {
+            std::cerr << "*IMU.Bias_ay parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
+        node = fSettings["IMU.Bias_az"];
+        if (!node.empty() && node.isReal())
+        {
+            bias_Acc_z = node.real();
+        }
+        else
+        {
+            std::cerr << "*IMU.Bias_az parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
         if (b_miss_params)
         {
             return false;
@@ -921,10 +982,14 @@ namespace ORB_SLAM3
         cout << "IMU gyro walk: " << Ngw << " rad/s^2/sqrt(Hz)" << endl;
         cout << "IMU accelerometer noise: " << Na << " m/s^2/sqrt(Hz)" << endl;
         cout << "IMU accelerometer walk: " << Naw << " m/s^3/sqrt(Hz)" << endl;
+        cout << "IMU gyro bias: " << bias_gyro_x << "," << bias_gyro_y << "," << bias_gyro_z << endl;
+        cout << "IMU accelerometer bias: " << bias_Acc_x << "," << bias_Acc_y << "," << bias_Acc_z << endl;
 
         mpImuCalib = new IMU::Calib(Tbc, Ng * sf, Na * sf, Ngw / sf, Naw / sf);
 
-        mpImuPreintegratedFromLastKF = new IMU::Preintegrated(IMU::Bias(), *mpImuCalib);
+        mInputBias = IMU::Bias(bias_Acc_x, bias_Acc_y, bias_Acc_z, bias_gyro_x, bias_gyro_y, bias_gyro_z);
+
+        mpImuPreintegratedFromLastKF = new IMU::Preintegrated(mInputBias, *mpImuCalib);
 
         return true;
     }
@@ -1098,8 +1163,8 @@ namespace ORB_SLAM3
         }
         else if (mSensor == System::IMU_MONOCULAR)
         {
-
             mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, mpORBVocabulary, mpCamera, mDistCoef, mbf, mThDepth, &mLastFrame, *mpImuCalib);
+            mCurrentFrame.SetNewBias(mInputBias);
         }
 
         if (mState == NO_IMAGES_YET)
@@ -2058,7 +2123,7 @@ namespace ORB_SLAM3
                 if (mpImuPreintegratedFromLastKF)
                     delete mpImuPreintegratedFromLastKF;
 
-                mpImuPreintegratedFromLastKF = new IMU::Preintegrated(IMU::Bias(), *mpImuCalib);
+                mpImuPreintegratedFromLastKF = new IMU::Preintegrated(mInputBias, *mpImuCalib);
                 mCurrentFrame.mpImuPreintegrated = mpImuPreintegratedFromLastKF;
             }
 
@@ -2195,7 +2260,7 @@ namespace ORB_SLAM3
                 {
                     delete mpImuPreintegratedFromLastKF;
                 }
-                mpImuPreintegratedFromLastKF = new IMU::Preintegrated(IMU::Bias(), *mpImuCalib);
+                mpImuPreintegratedFromLastKF = new IMU::Preintegrated(mInputBias, *mpImuCalib);
                 mCurrentFrame.mpImuPreintegrated = mpImuPreintegratedFromLastKF;
             }
 
@@ -2436,7 +2501,7 @@ namespace ORB_SLAM3
                     {
                         delete mpImuPreintegratedFromLastKF;
                     }
-                    mpImuPreintegratedFromLastKF = new IMU::Preintegrated(IMU::Bias(), *mpImuCalib);
+                    mpImuPreintegratedFromLastKF = new IMU::Preintegrated(mInputBias, *mpImuCalib);
                     mCurrentFrame.mpImuPreintegrated = mpImuPreintegratedFromLastKF;
                 }
                 return;
@@ -2663,7 +2728,7 @@ namespace ORB_SLAM3
         if ((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO) && mpImuPreintegratedFromLastKF)
         {
             delete mpImuPreintegratedFromLastKF;
-            mpImuPreintegratedFromLastKF = new IMU::Preintegrated(IMU::Bias(), *mpImuCalib);
+            mpImuPreintegratedFromLastKF = new IMU::Preintegrated(mInputBias, *mpImuCalib);
         }
 
         if (mpLastKeyFrame)
