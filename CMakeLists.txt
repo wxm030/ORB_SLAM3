@@ -31,6 +31,13 @@ else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
+
+# Make sure that custom modules like FindXXXX are found
+# Prefer to use system installation of gflags/glog
+set(GFLAGS_PREFER_EXPORTED_GFLAGS_CMAKE_CONFIGURATION TRUE)
+set(GLOG_PREFER_EXPORTED_GLOG_CMAKE_CONFIGURATION TRUE)
+LIST(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
+
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
 find_package(OpenCV 3)
@@ -49,19 +56,26 @@ FIND_PACKAGE(Sophus REQUIRED)
 MESSAGE("Sophus_INCLUDE_DIR:")
 MESSAGE(${Sophus_INCLUDE_DIR})
 
+find_package(Boost REQUIRED COMPONENTS
+  filesystem serialization regex timer date_time thread)
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 #FIND_PACKAGE(fast REQUIRED)
+find_package(Glog REQUIRED)
+find_package(Gflags REQUIRED)
 
 include_directories(
 ${Sophus_INCLUDE_DIR}
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${PROJECT_SOURCE_DIR}/Thirdparty/fast/include
+#${fast_INCLUDE_DIRS}
+${Boost_INCLUDE_DIRS}
+${GLOG_INCLUDE_DIRS}
+${GFLAGS_INCLUDE_DIRS}
 ${PROJECT_SOURCE_DIR}/include/CameraModels
 ${EIGEN3_INCLUDE_DIR}
-#${fast_INCLUDE_DIRS}
 ${Pangolin_INCLUDE_DIRS}
 )
 
@@ -97,6 +111,7 @@ src/MLPnPsolver.cpp
 src/TwoViewReconstruction.cc
 src/sparse_img_align.cpp
 src/robust_cost.cpp
+src/Logger.cc
 include/System.h
 include/Tracking.h
 include/LocalMapping.h
@@ -126,6 +141,7 @@ include/OptimizableTypes.h
 include/MLPnPsolver.h
 include/TwoViewReconstruction.h
 include/sparse_img_align.h
+include/Logger.h
 )
 
 add_subdirectory(Thirdparty/g2o)
@@ -135,11 +151,13 @@ ${OpenCV_LIBS}
 ${Sophus_LIBRARIES}
 ${EIGEN3_LIBS}
 #${fast_LIBRARIES}
+${GLOG_LIBRARIES}
+${GFLAGS_LIBRARIES}
+${Boost_LIBRARIES}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/fast/build/libfast.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
--lboost_serialization
 -lcrypto
 )
 

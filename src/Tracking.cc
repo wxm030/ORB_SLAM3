@@ -42,12 +42,15 @@ using namespace std;
 namespace ORB_SLAM3
 {
 
-    Tracking::Tracking(System *pSys, ORBVocabulary *pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Atlas *pAtlas, KeyFrameDatabase *pKFDB, const string &strSettingPath, const int sensor, const string &_nameSeq) : mState(NO_IMAGES_YET), mSensor(sensor), mTrackedFr(0), mbStep(false),
-                                                                                                                                                                                                                              mbOnlyTracking(false), mbMapUpdated(false), mbVO(false), mpORBVocabulary(pVoc), mpKeyFrameDB(pKFDB),
-                                                                                                                                                                                                                              mpInitializer(static_cast<Initializer *>(NULL)), mpSystem(pSys), mpViewer(NULL),
-                                                                                                                                                                                                                              mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpAtlas(pAtlas), mnLastRelocFrameId(0), time_recently_lost(5.0),
-                                                                                                                                                                                                                              mnInitialFrameId(0), mbCreatedMap(false), mnFirstFrameId(0), mpCamera2(nullptr)
+    Tracking::Tracking(System *pSys, ORBVocabulary *pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Atlas *pAtlas, KeyFrameDatabase *pKFDB, const string &strSettingPath, const int sensor, const string &_nameSeq)
+        : mState(NO_IMAGES_YET), mSensor(sensor), mTrackedFr(0), mbStep(false),
+          mbOnlyTracking(false), mbMapUpdated(false), mbVO(false), mpORBVocabulary(pVoc), mpKeyFrameDB(pKFDB),
+          mpInitializer(static_cast<Initializer *>(NULL)), mpSystem(pSys), mpViewer(NULL),
+          mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpAtlas(pAtlas), mnLastRelocFrameId(0), time_recently_lost(5.0),
+          mnInitialFrameId(0), mbCreatedMap(false), mnFirstFrameId(0), mpCamera2(nullptr)
     {
+        logger_ = std::unique_ptr<TrackingLogger>(new TrackingLogger());
+
         // Load camera parameters from settings file
         cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
 
@@ -1061,6 +1064,8 @@ namespace ORB_SLAM3
         mCurrentFrame.mnDataset = mnNumDataset;
 
         Track();
+        logger_->logTrackingPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw);
+        logger_->logScaleValueCSV(mCurrentFrame.mTimeStamp * 1e9, mpLocalMapper->mScale);
 
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
@@ -1115,6 +1120,8 @@ namespace ORB_SLAM3
         mCurrentFrame.mnDataset = mnNumDataset;
 
         Track();
+        logger_->logTrackingPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw);
+        logger_->logScaleValueCSV(mCurrentFrame.mTimeStamp * 1e9, mpLocalMapper->mScale);
 
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
@@ -1177,6 +1184,8 @@ namespace ORB_SLAM3
 
         lastID = mCurrentFrame.mnId;
         Track();
+        logger_->logTrackingPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw);
+        logger_->logScaleValueCSV(mCurrentFrame.mTimeStamp * 1e9, mpLocalMapper->mScale);
 
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
@@ -1307,9 +1316,11 @@ namespace ORB_SLAM3
             }
 
             if (!mpImuPreintegratedFromLastKF)
+            {
                 cout << "mpImuPreintegratedFromLastKF does not exist" << endl;
-            mpImuPreintegratedFromLastKF->IntegrateNewMeasurement(acc, angVel, tstep);
-            pImuPreintegratedFromLastFrame->IntegrateNewMeasurement(acc, angVel, tstep);
+            }
+            mpImuPreintegratedFromLastKF->IntegrateNewMeasurement(acc, angVel, tstep);   //从上一个关键帧到当前帧的imu积分
+            pImuPreintegratedFromLastFrame->IntegrateNewMeasurement(acc, angVel, tstep); //从上一个帧到当前帧的imu积分
         }
 
         mCurrentFrame.mpImuPreintegratedFrame = pImuPreintegratedFromLastFrame;
@@ -1328,8 +1339,7 @@ namespace ORB_SLAM3
             Verbose::PrintMess("No last frame", Verbose::VERBOSITY_NORMAL);
             return false;
         }
-
-        if (mbMapUpdated && mpLastKeyFrame)
+        if (mbMapUpdated && mpLastKeyFrame) //当前帧的位姿　＝　从上一个关键帧的位姿＊上一关键帧到当前帧的imu积分的位姿
         {
             const cv::Mat twb1 = mpLastKeyFrame->GetImuPosition();
             const cv::Mat Rwb1 = mpLastKeyFrame->GetImuRotation();
@@ -1347,9 +1357,20 @@ namespace ORB_SLAM3
             mCurrentFrame.mPredVwb = Vwb2.clone();
             mCurrentFrame.mImuBias = mpLastKeyFrame->GetImuBias();
             mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
+            //log
+            // cv::Mat delta_R = IMU::NormalizeRotation(mpImuPreintegratedFromLastKF->GetDeltaRotation(mpLastKeyFrame->GetImuBias()));
+            // cv::Mat delta_t = Vwb1 * t12 + 0.5f * t12 * t12 * Gz + Rwb1 * mpImuPreintegratedFromLastKF->GetDeltaPosition(mpLastKeyFrame->GetImuBias());
+            // cv::Mat delta_T = cv::Mat::eye(4, 4, CV_32F);
+            // Rwb2.copyTo(delta_T.rowRange(0, 3).colRange(0, 3));
+            // twb2.copyTo(delta_T.rowRange(0, 3).col(3));
+            // logger_->logPreIntegratedIMUPoseCSV(mCurrentFrame.mTimeStamp * 1e9, delta_T, mpLastKeyFrame->mTimeStamp * 1e9);
+            cv::Mat delta_R = IMU::NormalizeRotation(mpImuPreintegratedFromLastKF->GetDeltaRotation(mpLastKeyFrame->GetImuBias()));
+            std::vector<float> angle_delta = Converter::toEuler(delta_R);
+            std::cout << "angle_delta == " << angle_delta[0] << "," << angle_delta[1] << "," << angle_delta[2] << std::endl;
+            logger_->logPreIntegratedIMUPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw, mpLastKeyFrame->mTimeStamp * 1e9);
             return true;
         }
-        else if (!mbMapUpdated)
+        else if (!mbMapUpdated) //当前帧的位姿　＝　从上一个帧的位姿＊上一帧到当前帧的imu积分的位姿
         {
             const cv::Mat twb1 = mLastFrame.GetImuPosition();
             const cv::Mat Rwb1 = mLastFrame.GetImuRotation();
@@ -1367,6 +1388,14 @@ namespace ORB_SLAM3
             mCurrentFrame.mPredVwb = Vwb2.clone();
             mCurrentFrame.mImuBias = mLastFrame.mImuBias;
             mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
+
+            // cv::Mat delta_R = IMU::NormalizeRotation(mCurrentFrame.mpImuPreintegratedFrame->GetDeltaRotation(mLastFrame.mImuBias));
+            // cv::Mat delta_t = Vwb1 * t12 + 0.5f * t12 * t12 * Gz + Rwb1 * mCurrentFrame.mpImuPreintegratedFrame->GetDeltaPosition(mLastFrame.mImuBias);
+            // cv::Mat delta_T = cv::Mat::eye(4, 4, CV_32F);
+            // Rwb2.copyTo(delta_T.rowRange(0, 3).colRange(0, 3));
+            // twb2.copyTo(delta_T.rowRange(0, 3).col(3));
+            // logger_->logPreIntegratedIMUPoseCSV(mCurrentFrame.mTimeStamp * 1e9, delta_T, mLastFrame.mTimeStamp * 1e9);
+            logger_->logPreIntegratedIMUPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw, mLastFrame.mTimeStamp * 1e9);
             return true;
         }
         else
@@ -1621,13 +1650,11 @@ namespace ORB_SLAM3
 #ifdef SAVE_TIMES
                 std::chrono::steady_clock::time_point timeStartPosePredict = std::chrono::steady_clock::now();
 #endif
-
                 // State OK
                 // Local Mapping is activated. This is the normal behaviour, unless
                 // you explicitly activate the "only tracking" mode.
                 if (mState == OK)
                 {
-
                     // Local Mapping might have changed some MapPoints tracked in last frame
                     CheckReplacedInLastFrame();
 
@@ -2395,6 +2422,22 @@ namespace ORB_SLAM3
                     mInitialFrame.mvbOutlier[i] = true;
                 }
             }
+
+            // Rescale the map such that the mean scene depth is equal to the specified scale
+            std::vector<double> depth_vec;
+            for (size_t i = 0; i < mvIniP3D.size(); ++i)
+            {
+                depth_vec.push_back(mvIniP3D[i].z);
+            }
+            double scene_depth_median = getMedian(depth_vec);
+            double scale = 1.0 / scene_depth_median;
+            tcw = -Rcw * scale * (-Rcw.t() * tcw);
+
+            for (size_t i = 0; i < mvIniP3D.size(); ++i)
+            {
+                mvIniP3D[i] = mvIniP3D[i] * scale;
+            }
+            std::cout << "init vision scale set to 1" << scale << std::endl;
             // Set Frame Poses
             mInitialFrame.SetPose(cv::Mat::eye(4, 4, CV_32F));
             cv::Mat Tcw = cv::Mat::eye(4, 4, CV_32F);

@@ -31,7 +31,7 @@
 using namespace std;
 
 void LoadImages(const string &strImagePath, const string &strPathTimes,
-                vector<string> &vstrImages, vector<double> &vTimeStamps);
+                vector<string> &vstrImages, vector<double> &vTimeStamps, double timeshift);
 
 void LoadIMU(const string &strImuPath, vector<double> &vTimeStamps, vector<cv::Point3f> &vAcc, vector<cv::Point3f> &vGyro);
 
@@ -85,7 +85,10 @@ int main(int argc, char *argv[])
         string pathCam0 = pathSeq + "/mav0/cam0/data";
         string pathImu = pathSeq + "/mav0/imu0/data.csv";
 
-        LoadImages(pathCam0, pathTimeStamps, vstrImageFilenames[seq], vTimestampsCam[seq]);
+        //read timeshift
+        cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
+        double timeshift = fsSettings["Timeshift"]; //t_imu = t_cam + timeshift
+        LoadImages(pathCam0, pathTimeStamps, vstrImageFilenames[seq], vTimestampsCam[seq], timeshift);
         cout << "LOADED!" << endl;
 
         cout << "Loading IMU for sequence " << seq << "...";
@@ -122,10 +125,11 @@ int main(int argc, char *argv[])
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::IMU_MONOCULAR, true);
 
+    cout << "first_imu[seq]==  " << first_imu[0] << "," << vTimestampsImu[0].size() << endl;
+
     int proccIm = 0;
     for (seq = 0; seq < num_seq; seq++)
     {
-
         // Main loop
         cv::Mat im;
         vector<ORB_SLAM3::IMU::Point> vImuMeas;
@@ -150,9 +154,9 @@ int main(int argc, char *argv[])
 
             if (ni > 0)
             {
-                // cout << "t_cam " << tframe << endl;
+                cout << "first_imu[seq]==  " << first_imu[seq] << "," << vTimestampsImu[seq].size() << endl;
 
-                while (vTimestampsImu[seq][first_imu[seq]] <= vTimestampsCam[seq][ni])
+                while (vTimestampsImu[seq][first_imu[seq]] <= vTimestampsCam[seq][ni] && first_imu[seq] < vTimestampsImu[seq].size())
                 {
                     vImuMeas.push_back(ORB_SLAM3::IMU::Point(vAcc[seq][first_imu[seq]].x, vAcc[seq][first_imu[seq]].y, vAcc[seq][first_imu[seq]].z,
                                                              vGyro[seq][first_imu[seq]].x, vGyro[seq][first_imu[seq]].y, vGyro[seq][first_imu[seq]].z,
@@ -226,7 +230,7 @@ int main(int argc, char *argv[])
 }
 
 void LoadImages(const string &strImagePath, const string &strPathTimes,
-                vector<string> &vstrImages, vector<double> &vTimeStamps)
+                vector<string> &vstrImages, vector<double> &vTimeStamps, double timeshift)
 {
     ifstream fTimes;
     fTimes.open(strPathTimes.c_str());
@@ -243,7 +247,7 @@ void LoadImages(const string &strImagePath, const string &strPathTimes,
             vstrImages.push_back(strImagePath + "/" + ss.str() + ".png");
             double t;
             ss >> t;
-            vTimeStamps.push_back(t / 1e9);
+            vTimeStamps.push_back(t / 1e9 + timeshift);
         }
     }
 }

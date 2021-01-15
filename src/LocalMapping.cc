@@ -132,18 +132,20 @@ namespace ORB_SLAM3
                                          cv::norm(mpCurrentKeyFrame->mPrevKF->mPrevKF->GetCameraCenter() - mpCurrentKeyFrame->mPrevKF->GetCameraCenter());
 
                             if (dist > 0.05)
-                                mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
-                            if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
                             {
-                                if ((mTinit < 10.f) && (dist < 0.02))
-                                {
-                                    cout << "Not enough motion for initializing. Reseting..." << endl;
-                                    unique_lock<mutex> lock(mMutexReset);
-                                    mbResetRequestedActiveMap = true;
-                                    mpMapToReset = mpCurrentKeyFrame->GetMap();
-                                    mbBadImu = true;
-                                }
+                                mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
                             }
+                            // if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
+                            // {
+                            //     if ((mTinit < 10.f) && (dist < 0.02))
+                            //     {
+                            //         cout << "Not enough motion for initializing. Reseting..." << endl;
+                            //         unique_lock<mutex> lock(mMutexReset);
+                            //         mbResetRequestedActiveMap = true;
+                            //         mpMapToReset = mpCurrentKeyFrame->GetMap();
+                            //         mbBadImu = true;
+                            //     }
+                            // }
 
                             bool bLarge = ((mpTracker->GetMatchesInliers() > 75) && mbMonocular) || ((mpTracker->GetMatchesInliers() > 100) && !mbMonocular);
                             Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(), bLarge, !mpCurrentKeyFrame->GetMap()->GetIniertialBA2());
@@ -1276,8 +1278,6 @@ namespace ORB_SLAM3
         }
 
         const int N = vpKF.size();
-        IMU::Bias b(0, 0, 0, 0, 0, 0);
-
         // Compute and KF velocities mRwg estimation
         if (!mpCurrentKeyFrame->GetMap()->isImuInitialized())
         {
@@ -1306,9 +1306,15 @@ namespace ORB_SLAM3
             cvRwg = IMU::ExpSO3(vzg);
             mRwg = Converter::toMatrix3d(cvRwg);
             mTinit = mpCurrentKeyFrame->mTimeStamp - mFirstTs;
+
+            mbg = Converter::toVector3d(mpCurrentKeyFrame->GetGyroBias());
+            mba = Converter::toVector3d(mpCurrentKeyFrame->GetAccBias());
+
             std::cout << "imu init process 1111  " << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
                       << mRwg << std::endl
-                      << mTinit << std::endl;
+                      << mTinit << std::endl
+                      << mbg << std::endl
+                      << mba << std::endl;
         }
         else
         {
@@ -1329,7 +1335,8 @@ namespace ORB_SLAM3
 
         std::cout << "imu init process 3333  Optimizer::InertialOptimization   mScale ==" << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
                   << mScale << std::endl
-                  << mbg << "," << mba << std::endl;
+                  << mbg << std::endl
+                  << mba << std::endl;
 
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
@@ -1420,13 +1427,13 @@ namespace ORB_SLAM3
         mpTracker->mState = Tracking::OK;
         bInitializing = false;
 
-        /*cout << "After GIBA: " << endl;
-    cout << "ba: " << mpCurrentKeyFrame->GetAccBias() << endl;
-    cout << "bg: " << mpCurrentKeyFrame->GetGyroBias() << endl;
-    double t_inertial_only = std::chrono::duration_cast<std::chrono::duration<double> >(t1 - t0).count();
-    double t_update = std::chrono::duration_cast<std::chrono::duration<double> >(t3 - t2).count();
-    double t_viba = std::chrono::duration_cast<std::chrono::duration<double> >(t5 - t4).count();
-    cout << t_inertial_only << ", " << t_update << ", " << t_viba << endl;*/
+        cout << "After GIBA: " << endl;
+        cout << "ba: " << mpCurrentKeyFrame->GetAccBias() << endl;
+        cout << "bg: " << mpCurrentKeyFrame->GetGyroBias() << endl;
+        double t_inertial_only = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0).count();
+        double t_update = std::chrono::duration_cast<std::chrono::duration<double>>(t3 - t2).count();
+        double t_viba = std::chrono::duration_cast<std::chrono::duration<double>>(t5 - t4).count();
+        cout << t_inertial_only << ", " << t_update << ", " << t_viba << endl;
         std::cout << "imu init process 9999  mpCurrentKeyFrame->GetMap()->IncreaseChangeIndex()" << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"
                   << mScale << std::endl;
         mpCurrentKeyFrame->GetMap()->IncreaseChangeIndex();

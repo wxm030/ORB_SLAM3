@@ -45,6 +45,8 @@
 #include "math_utils.h"
 #include "sparse_img_align.h"
 
+#include "Logger.h"
+
 namespace ORB_SLAM3
 {
     class Viewer;
@@ -347,6 +349,8 @@ namespace ORB_SLAM3
         int initID, lastID;
 
         cv::Mat mTlr;
+
+        std::unique_ptr<TrackingLogger> logger_;
 
     public:
         cv::Mat mImRight;

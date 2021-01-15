@@ -201,6 +201,7 @@ namespace ORB_SLAM3
                     }
                     else
                     {
+                        std::cout << "old anchor is bad! creat new anchor in next frame!" << std::endl;
                         set_anchor = false;
                         cv::RNG rng(time(0));
                         color_anchor = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
