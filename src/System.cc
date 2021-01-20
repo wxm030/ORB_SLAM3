@@ -549,6 +549,7 @@ namespace ORB_SLAM3
         f.open(filename.c_str());
         // cout << "file open" << endl;
         f << fixed;
+        f << "#timestamp,x,y,z,qw,qx,qy,qz" << endl;
 
         // Frame pose is stored relative to its reference keyframe (which is optimized by BA and pose graph).
         // We need to get first the keyframe pose and then concatenate the relative transformation.
@@ -595,7 +596,7 @@ namespace ORB_SLAM3
                 cv::Mat Rwb = Tbw.rowRange(0, 3).colRange(0, 3).t();
                 cv::Mat twb = -Rwb * Tbw.rowRange(0, 3).col(3);
                 vector<float> q = Converter::toQuaternion(Rwb);
-                f << setprecision(6) << 1e9 * (*lT) << " " << setprecision(9) << twb.at<float>(0) << " " << twb.at<float>(1) << " " << twb.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+                f << setprecision(6) << 1e9 * (*lT) << "," << setprecision(9) << twb.at<float>(0) << "," << twb.at<float>(1) << "," << twb.at<float>(2) << "," << q[3] << "," << q[0] << "," << q[1] << "," << q[2] << endl; //qw xyz
             }
             else
             {
@@ -603,7 +604,7 @@ namespace ORB_SLAM3
                 cv::Mat Rwc = Tcw.rowRange(0, 3).colRange(0, 3).t();
                 cv::Mat twc = -Rwc * Tcw.rowRange(0, 3).col(3);
                 vector<float> q = Converter::toQuaternion(Rwc);
-                f << setprecision(6) << 1e9 * (*lT) << " " << setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+                f << setprecision(6) << 1e9 * (*lT) << "," << setprecision(9) << twc.at<float>(0) << "," << twc.at<float>(1) << "," << twc.at<float>(2) << "," << q[3] << "," << q[0] << "," << q[1] << "," << q[2] << endl; //qw xyz
             }
         }
 

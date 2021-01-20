@@ -569,7 +569,11 @@ namespace ORB_SLAM3
             cv::Mat P = pMP->GetWorldPos();
 
             // cout << "b";
-
+            if (mRcw.empty())
+            {
+                std::cerr << "Frame::isInFrustum   mRcw is empty!!!" << std::endl;
+                return false;
+            }
             // 3D in camera coordinates
             const cv::Mat Pc = mRcw * P + mtcw;
             const float Pc_dist = cv::norm(Pc);

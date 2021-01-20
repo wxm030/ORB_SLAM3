@@ -107,8 +107,8 @@ namespace ORB_SLAM3
         }
     }
 
-    void TrackingLogger::logInitialIMUdataCSV( std::string &cam_or_im,  Eigen::Vector3d &dR,  Eigen::Vector3d &dV,  Eigen::Vector3d &dP,
-                                              float &scale, float &dt, Eigen::Vector3d &g)
+    void TrackingLogger::logInitialIMUdataCSV(std::string cam_or_im, Eigen::Vector3d dR, Eigen::Vector3d dV, Eigen::Vector3d dP,
+                                              float scale, float dt, Eigen::Vector3d g)
     {
         // We log the poses in csv format for later alignement and analysis.
         std::ofstream &output_stream = output_init_imu_data_csv_.ofstream_;
@@ -116,10 +116,11 @@ namespace ORB_SLAM3
         // First, write header, but only once.
         if (!is_header_written)
         {
-            output_stream << "#timestamp,dR_x,dR_y,dR_z,dV_x, dV_y, dV_z,dP_x, dP_y, scale,dt,g_x,g_y,g_z" << std::endl;
+            output_stream << "#timestamp,dR_x,dR_y,dR_z,dV_x, dV_y, dV_z,dP_x, dP_y, dP_z, scale,dt,g_x,g_y,g_z" << std::endl;
             is_header_written = true;
         }
-        output_stream << cam_or_im << ","
+        output_stream << std::endl
+                      << cam_or_im << ","
                       << dR[0] << "," << dR[1] << "," << dR[2] << ","
                       << dV[0] << "," << dV[1] << "," << dV[2] << ","
                       << dP[0] << "," << dP[1] << "," << dP[2] << ","

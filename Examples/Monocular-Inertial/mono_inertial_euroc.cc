@@ -31,7 +31,7 @@
 using namespace std;
 
 void LoadImages(const string &strImagePath, const string &strPathTimes,
-                vector<string> &vstrImages, vector<double> &vTimeStamps, double timeshift);
+                vector<string> &vstrImages, vector<double> &vTimeStamps, double timeshift, double start_t, double end_t);
 
 void LoadIMU(const string &strImuPath, vector<double> &vTimeStamps, vector<cv::Point3f> &vAcc, vector<cv::Point3f> &vGyro);
 
@@ -87,8 +87,10 @@ int main(int argc, char *argv[])
 
         //read timeshift
         cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
-        double timeshift = fsSettings["Timeshift"]; //t_imu = t_cam + timeshift
-        LoadImages(pathCam0, pathTimeStamps, vstrImageFilenames[seq], vTimestampsCam[seq], timeshift);
+        double timeshift = fsSettings["Timeshift"];    //t_imu = t_cam + timeshift
+        double start_t = fsSettings["Camera_start_t"]; //s
+        double end_t = fsSettings["Camera_end_t"];     //s
+        LoadImages(pathCam0, pathTimeStamps, vstrImageFilenames[seq], vTimestampsCam[seq], timeshift, start_t, end_t);
         cout << "LOADED!" << endl;
 
         cout << "Loading IMU for sequence " << seq << "...";
@@ -222,7 +224,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        SLAM.SaveTrajectoryEuRoC("CameraTrajectory.txt");
+        SLAM.SaveTrajectoryEuRoC("CameraTrajectory.csv");
         SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt");
     }
 
@@ -230,12 +232,18 @@ int main(int argc, char *argv[])
 }
 
 void LoadImages(const string &strImagePath, const string &strPathTimes,
-                vector<string> &vstrImages, vector<double> &vTimeStamps, double timeshift)
+                vector<string> &vstrImages, vector<double> &vTimeStamps, double timeshift, double start_t, double end_t)
 {
     ifstream fTimes;
     fTimes.open(strPathTimes.c_str());
     vTimeStamps.reserve(5000);
     vstrImages.reserve(5000);
+    //get the first timestamp
+    string t0_str;
+    getline(fTimes, t0_str);
+    double time0 = stod(t0_str);
+    double t_start = time0 / 1e9 + timeshift + start_t;
+    double t_end = time0 / 1e9 + timeshift + end_t;
     while (!fTimes.eof())
     {
         string s;
@@ -244,10 +252,14 @@ void LoadImages(const string &strImagePath, const string &strPathTimes,
         {
             stringstream ss;
             ss << s;
-            vstrImages.push_back(strImagePath + "/" + ss.str() + ".png");
             double t;
             ss >> t;
-            vTimeStamps.push_back(t / 1e9 + timeshift);
+            double t_cam_after_shift = t / 1e9 + timeshift; //s
+            if (t_cam_after_shift > t_start && t_cam_after_shift < t_end)
+            {
+                vstrImages.push_back(strImagePath + "/" + ss.str() + ".png");
+                vTimeStamps.push_back(t_cam_after_shift);
+            }
         }
     }
 }

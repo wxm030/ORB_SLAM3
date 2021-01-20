@@ -5241,7 +5241,7 @@ namespace ORB_SLAM3
         std::set<g2o::HyperGraph::Edge *> setEdges = optimizer.edges();
 
         std::cout << "start optimization" << std::endl;
-        optimizer.setVerbose(false);
+        optimizer.setVerbose(true);
         optimizer.initializeOptimization();
         optimizer.optimize(its);
 

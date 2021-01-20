@@ -2487,7 +2487,7 @@ namespace ORB_SLAM3
                 std::cout << "--------------------" << std::endl;
             }
         }
-        cv::imshow("loop match", img_RR_matches);
+        // cv::imshow("loop match", img_RR_matches);
         cv::imshow("pnp_result", img_2);
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 #endif
@@ -2658,8 +2658,8 @@ namespace ORB_SLAM3
         pKFini->UpdateConnections();
         pKFcur->UpdateConnections();
 
-        std::set<MapPoint *> sMPs;
-        sMPs = pKFini->GetMapPoints();
+        // std::set<MapPoint *> sMPs;
+        // sMPs = pKFini->GetMapPoints();
 
         // Bundle Adjustment
         Verbose::PrintMess("New Map created with " + to_string(mpAtlas->MapPointsInMap()) + " points", Verbose::VERBOSITY_QUIET);
@@ -2667,10 +2667,12 @@ namespace ORB_SLAM3
 
         pKFcur->PrintPointDistribution();
 
+        //scale to 1 ==================================================================================================================
         float medianDepth = pKFini->ComputeSceneMedianDepth(2);
+        std::cout << "medianDepth === " << medianDepth << std::endl;
         float invMedianDepth;
         if (mSensor == System::IMU_MONOCULAR)
-            invMedianDepth = 4.0f / medianDepth; // 4.0f
+            invMedianDepth = 1.0f / medianDepth; // 4.0f
         else
             invMedianDepth = 1.0f / medianDepth;
 
@@ -2697,6 +2699,7 @@ namespace ORB_SLAM3
                 pMP->UpdateNormalAndDepth();
             }
         }
+        //scale to 1 ==================================================================================================================
 
         if (mSensor == System::IMU_MONOCULAR)
         {
@@ -2813,7 +2816,7 @@ namespace ORB_SLAM3
 
         // std::cout << "TrackWithSparseImgAlign == " << mLastFrame.mTcw << std::endl;
         //初始位姿可以用上一帧的位姿，也可以用速度模型估计，还可以用imu预积分估计当前帧的初始位姿
-        if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId > mnLastRelocFrameId + mnFramesToResetIMU))
+        if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId > mnLastRelocFrameId + mnFramesToResetIMU) && mCurrentFrame.imuIsPreintegrated())
         {
             // Predict ste with IMU if it is initialized and it doesnt need reset
             PredictStateIMU();
@@ -3252,7 +3255,7 @@ namespace ORB_SLAM3
         std::cout << "TrackLocalMapDirectXiang====" << std::to_string(mCurrentFrame.mTimeStamp) << std::endl;
         // project the local map points into current frame, then search with direct align
         // 这步把 local map points 投影至当前帧并确定其位置
-        if (mCurrentFrame.mbFeatureExtracted == true) // 此帧已经提了特征，用特征点法的local mapping来处理
+        if (mCurrentFrame.mbFeatureExtracted == true) // 此帧已经提了特征，用特征点法的local mapping来处理;
         {
             // if we have extracted features, do it with feature matching
             std::cout << "This frame already have features, using Track Local Map instead." << endl;
@@ -3398,7 +3401,7 @@ namespace ORB_SLAM3
 
         if (mSensor == System::IMU_MONOCULAR)
         {
-            if (mnMatchesInliers < 15)
+            if (mnMatchesInliers < 60) //15
             {
                 mbDirectFailed = true;
                 return false;
@@ -3735,14 +3738,14 @@ namespace ORB_SLAM3
         // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
         const bool c2 = (((mnMatchesInliers < nRefMatches * thRefRatio || bNeedToInsertClose)) && mnMatchesInliers > 15);
 
-        // std::cout << "Need new keyframe   bLocalMappingIdle  == " << bLocalMappingIdle << std::endl;
-        // std::cout << "Need new keyframe   mCurrentFrame.mnId  == " << mCurrentFrame.mnId << std::endl;
-        // std::cout << "Need new keyframe   mnLastKeyFrameId == " << mnLastKeyFrameId << std::endl;
-        // std::cout << "Need new keyframe   mMaxFrames, mMinFrames == " << mMaxFrames << "," << mMinFrames << std::endl;
-        // std::cout << "Need new keyframe   mnMatchesInliers == " << mnMatchesInliers << std::endl;
-        // std::cout << "Need new keyframe   nRefMatches == " << nRefMatches << std::endl;
-        // std::cout << "Need new keyframe   thRefRatio == " << thRefRatio << std::endl;
-        // std::cout << "Nedd new keyframe nRefMatches * thRefRatio = " << nRefMatches * thRefRatio << std::endl;
+        std::cout << "Need new keyframe   bLocalMappingIdle  == " << bLocalMappingIdle << std::endl;
+        std::cout << "Need new keyframe   mCurrentFrame.mnId  == " << mCurrentFrame.mnId << std::endl;
+        std::cout << "Need new keyframe   mnLastKeyFrameId == " << mnLastKeyFrameId << std::endl;
+        std::cout << "Need new keyframe   mMaxFrames, mMinFrames == " << mMaxFrames << "," << mMinFrames << std::endl;
+        std::cout << "Need new keyframe   mnMatchesInliers == " << mnMatchesInliers << std::endl;
+        std::cout << "Need new keyframe   nRefMatches == " << nRefMatches << std::endl;
+        std::cout << "Need new keyframe   thRefRatio == " << thRefRatio << std::endl;
+        std::cout << "Nedd new keyframe nRefMatches * thRefRatio = " << nRefMatches * thRefRatio << std::endl;
 
         // Temporal condition for Inertial cases
         bool c3 = false;
@@ -3761,10 +3764,12 @@ namespace ORB_SLAM3
         }
 
         bool c4 = false;
-        if ((((mnMatchesInliers < 75) && (mnMatchesInliers > 15)) || mState == RECENTLY_LOST) && ((mSensor == System::IMU_MONOCULAR))) // MODIFICATION_2, originally ((((mnMatchesInliers<75) && (mnMatchesInliers>15)) || mState==RECENTLY_LOST) && ((mSensor == System::IMU_MONOCULAR)))
+        if ((((mnMatchesInliers < 75) && (mnMatchesInliers > 15)) || mState == RECENTLY_LOST) && ((mSensor == System::IMU_MONOCULAR)))
             c4 = true;
         else
             c4 = false;
+
+        std::cout << "Nedd new keyframe c1a  ==================== " << c1a << "," << c1b << "," << c1c << "," << c2 << "," << c3 << "," << c4 << std::endl;
 
         if (((c1a || c1b || c1c) && c2) || c3 || c4)
         {

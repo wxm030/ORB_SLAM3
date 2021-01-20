@@ -88,8 +88,8 @@ namespace ORB_SLAM3
         void logTrackReferenceFramePoseCSV(const double &timestamp, const cv::Mat &pose);
         void logTrackMotionModelPoseCSV(const double &timestamp, const cv::Mat &pose);
         void logTrackSparseImageCSV(const double &timestamp, const cv::Mat &pose);
-        void logInitialIMUdataCSV(std::string &cam_or_im, Eigen::Vector3d &dR, Eigen::Vector3d &dV, Eigen::Vector3d &dP,
-                                  float &scale, float &dt, Eigen::Vector3d &g);
+        void logInitialIMUdataCSV(std::string cam_or_im, Eigen::Vector3d dR, Eigen::Vector3d dV, Eigen::Vector3d dP,
+                                  float scale, float dt, Eigen::Vector3d g);
 
     private:
         // Filenames to be saved in the output folder.

@@ -801,7 +801,7 @@ Eigen::Vector3d EdgeMonoInvdepthBody::cam_unproject(const double u, const double
                                                                JVg(Converter::toMatrix3d(pInt->JVg)), JPg(Converter::toMatrix3d(pInt->JPg)), JVa(Converter::toMatrix3d(pInt->JVa)),
                                                                JPa(Converter::toMatrix3d(pInt->JPa)), mpInt(pInt), dt(pInt->dT)
     {
-        logger_ = std::unique_ptr<TrackingLogger>(new TrackingLogger());
+        // logger_ = std::unique_ptr<TrackingLogger>(new TrackingLogger());
         // This edge links 8 vertices
         resize(8);
         gI << 0, 0, -IMU::GRAVITY_VALUE;
@@ -820,6 +820,7 @@ Eigen::Vector3d EdgeMonoInvdepthBody::cam_unproject(const double u, const double
         setInformation(Info);
     }
 
+    std::mutex EdgeInertialGS::log_mutex;
     void EdgeInertialGS::computeError()
     {
         // TODO Maybe Reintegrate inertial measurments when difference between linearization point and current estimate is too big
@@ -842,25 +843,31 @@ Eigen::Vector3d EdgeMonoInvdepthBody::cam_unproject(const double u, const double
         const Eigen::Vector3d ev = VP1->estimate().Rwb.transpose() * (s * (VV2->estimate() - VV1->estimate()) - g * dt) - dV;
         const Eigen::Vector3d ep = VP1->estimate().Rwb.transpose() * (s * (VP2->estimate().twb - VP1->estimate().twb - VV1->estimate() * dt) - g * dt * dt / 2) - dP;
 
-        std::cout << "dR-dR  " << LogSO3(dR) << "\n"
-                  << LogSO3(VP1->estimate().Rwb.transpose() * VP2->estimate().Rwb) << std::endl;
+        {
+            std::ofstream output_stream("/home/wxm/Documents/code/ORB_SLAM3/data/output_logs/init_imu_data.csv", std::ios::app | std::ios::out);
+            output_stream << "imu"
+                          << ","
+                          << LogSO3(dR)[0] << "," << LogSO3(dR)[1] << "," << LogSO3(dR)[2] << ","
+                          << dV[0] << "," << dV[1] << "," << dV[2] << ","
+                          << dP[0] << "," << dP[1] << "," << dP[2] << ","
+                          << s << ","
+                          << dt << ","
+                          << g[0] << "," << g[1] << "," << g[2]
+                          << std::endl;
 
-        std::cout << "dV-dV  " << dV << "\n"
-                  << VP1->estimate().Rwb.transpose() * (s * (VV2->estimate() - VV1->estimate()) - g * dt) << std::endl;
-
-        std::cout << "dP--dP " << dP << "\n"
-                  << VP1->estimate().Rwb.transpose() * (s * (VP2->estimate().twb - VP1->estimate().twb - VV1->estimate() * dt) - g * dt * dt / 2) << std::endl;
-
-        std::cout << "error  == " << er << "," << ev << "," << ep << std::endl;
-        std::cout << "g  == " << g << std::endl;
-        std::cout << "s  == " << s << std::endl;
-        std::cout << "dt  == " << dt << std::endl;
-
-        logger_->logInitialIMUdataCSV("imu", LogSO3(dR), dV, dP, s, dt, g);
-        logger_->logInitialIMUdataCSV("cam", LogSO3(VP1->estimate().Rwb.transpose() * VP2->estimate().Rwb),
-                                      VP1->estimate().Rwb.transpose() * (s * (VV2->estimate() - VV1->estimate()) - g * dt),
-                                      VP1->estimate().Rwb.transpose() * (s * (VP2->estimate().twb - VP1->estimate().twb - VV1->estimate() * dt) - g * dt * dt / 2),
-                                      s, dt, g);
+            Eigen::Vector3d dR_cam = LogSO3(VP1->estimate().Rwb.transpose() * VP2->estimate().Rwb);
+            Eigen::Vector3d dP_cam = VP1->estimate().Rwb.transpose() * (s * (VP2->estimate().twb - VP1->estimate().twb - VV1->estimate() * dt) - g * dt * dt / 2);
+            Eigen::Vector3d dv_cam = VP1->estimate().Rwb.transpose() * (s * (VV2->estimate() - VV1->estimate()) - g * dt);
+            output_stream << "cam"
+                          << ","
+                          << dR_cam[0] << "," << dR_cam[1] << "," << dR_cam[2] << ","
+                          << dv_cam[0] << "," << dv_cam[1] << "," << dv_cam[2] << ","
+                          << dP_cam[0] << "," << dP_cam[1] << "," << dP_cam[2] << ","
+                          << s << ","
+                          << dt << ","
+                          << g[0] << "," << g[1] << "," << g[2]
+                          << std::endl;
+        }
 
         _error << er, ev, ep;
     }

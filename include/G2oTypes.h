@@ -592,7 +592,8 @@ namespace ORB_SLAM3
         const double dt;
         Eigen::Vector3d g, gI;
 
-        std::unique_ptr<TrackingLogger> logger_;
+        // std::unique_ptr<TrackingLogger> logger_;
+        static std::mutex log_mutex;
 
         Eigen::Matrix<double, 27, 27> GetHessian()
         {

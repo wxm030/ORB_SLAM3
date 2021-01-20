@@ -168,7 +168,8 @@ namespace ORB_SLAM3
                         if (mbMonocular)
                         {
                             std::cout << "InitializeIMU(1e2, 1e10, true)  1111 " << std::endl;
-                            InitializeIMU(1e2, 1e10, true);
+                            // InitializeIMU(1e2, 1e10, true);
+                            InitializeIMU(1, 1e5, true);
                         }
                         else
                         {
@@ -1279,6 +1280,7 @@ namespace ORB_SLAM3
 
         const int N = vpKF.size();
         // Compute and KF velocities mRwg estimation
+        //初始化估计
         if (!mpCurrentKeyFrame->GetMap()->isImuInitialized())
         {
             cv::Mat cvRwg;
