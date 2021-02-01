@@ -69,6 +69,8 @@ namespace ORB_SLAM3
 
         while (1)
         {
+            std::chrono::steady_clock::time_point t0_1 = std::chrono::steady_clock::now();
+
             // Tracking will see that Local Mapping is busy
             SetAcceptKeyFrames(false);
 
@@ -169,7 +171,7 @@ namespace ORB_SLAM3
                         {
                             std::cout << "InitializeIMU(1e2, 1e10, true)  1111 " << std::endl;
                             // InitializeIMU(1e2, 1e10, true);
-                            InitializeIMU(1, 1e2, true);
+                            InitializeIMU(1, 1e2, true); //1, 1e2,
                         }
                         else
                         {
@@ -195,7 +197,7 @@ namespace ORB_SLAM3
                                     mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                     if (mbMonocular)
                                     {
-                                        InitializeIMU(1.f, 1.f, true); // 1.f, 1e5
+                                        InitializeIMU(1.f, 1.f, true); // 1.f, 1e5  1,1
                                     }
                                     else
                                     {
@@ -214,7 +216,7 @@ namespace ORB_SLAM3
                                     mpCurrentKeyFrame->GetMap()->SetIniertialBA2();
                                     if (mbMonocular)
                                     {
-                                        InitializeIMU(1.f, 1.f, true); // 0.f, 0.f
+                                        InitializeIMU(0.f, 0.f, true); // 0.f, 0.f
                                     }
                                     else
                                     {
@@ -258,6 +260,9 @@ namespace ORB_SLAM3
                 double t_KF_cull = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(t6 - t5).count();
                 double t_Insert = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(t8 - t7).count();
 
+                std::cout << "t_localMapping_every_process = " << t_procKF << ", t_MPcull = "
+                          << t_MPcull << ", t_CheckMP = " << t_CheckMP << ",t_searchNeigh = "
+                          << t_searchNeigh << ", t_Opt = " << t_Opt << ", t_KF_cull = " << t_KF_cull << ", t_Insert" << t_Insert << std::endl;
                 //DEBUG--
                 /*f_lm << setprecision(6);
             f_lm << t_procKF << ",";
@@ -285,6 +290,9 @@ namespace ORB_SLAM3
 
             // Tracking will see that Local Mapping is busy
             SetAcceptKeyFrames(true);
+            std::chrono::steady_clock::time_point t1_1 = std::chrono::steady_clock::now();
+            double t_localmapping = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(t1_1 - t0_1).count();
+            std::cout << "t_localMapping = " << t_localmapping << std::endl;
 
             if (CheckFinish())
                 break;
@@ -1488,17 +1496,17 @@ namespace ORB_SLAM3
         int nMinKF;
         if (mbMonocular)
         {
-            // minTime = 2.0;
-            // nMinKF = 10;
-            minTime = 4.0;
-            nMinKF = 20;
+            minTime = 2.0;
+            nMinKF = 10;
+            // minTime = 4.0;
+            // nMinKF = 20;
         }
         else
         {
-            // minTime = 1.0;
-            // nMinKF = 10;
-            minTime = 4.0;
-            nMinKF = 20;
+            minTime = 1.0;
+            nMinKF = 10;
+            // minTime = 4.0;
+            // nMinKF = 20;
         }
 
         if (mpAtlas->KeyFramesInMap() < nMinKF)
@@ -1601,10 +1609,6 @@ namespace ORB_SLAM3
 
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-        /*cout << "scale after inertial-only optimization: " << mScale << endl;
-    cout << "bg after inertial-only optimization: " << mbg << endl;
-    cout << "ba after inertial-only optimization: " << mba << endl;*/
-
         if (mScale < 1e-1)
         {
             cout << "scale too small" << endl;
@@ -1650,7 +1654,6 @@ namespace ORB_SLAM3
                           << mScale << std::endl;
                 Optimizer::FullInertialBA(mpAtlas->GetCurrentMap(), 100, false, 0, NULL, true, priorG, priorA);
             }
-
             else
             {
                 std::cout << "imu init process 7777  FullInertialBA" << std::to_string(mpCurrentKeyFrame->mTimeStamp) << "\n"

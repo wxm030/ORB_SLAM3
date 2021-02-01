@@ -82,7 +82,7 @@ namespace ORB_SLAM3
         TrackingLogger();
         virtual ~TrackingLogger() = default;
 
-        void logTrackingPoseCSV(const std::int64_t &timestamp, const cv::Mat &pose);
+        void logTrackingPoseCSV(const std::int64_t &timestamp, const cv::Mat &pose, const cv::Mat &velocity);
         void logScaleValueCSV(const std::int64_t &timestamp, const double &scale);
         void logPreIntegratedIMUPoseCSV(const std::int64_t &timestamp, const cv::Mat &relativepose, const std::int64_t &last_timestamp);
         void logTrackReferenceFramePoseCSV(const double &timestamp, const cv::Mat &pose);

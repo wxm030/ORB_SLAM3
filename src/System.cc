@@ -638,7 +638,7 @@ namespace ORB_SLAM3
         ofstream f;
         f.open(filename.c_str());
         f << fixed;
-
+        f << "#timestamp,x,y,z,qw,qx,qy,qz,vx,vy,vz" << endl;
         for (size_t i = 0; i < vpKFs.size(); i++)
         {
             KeyFrame *pKF = vpKFs[i];
@@ -647,17 +647,36 @@ namespace ORB_SLAM3
                 continue;
             if (mSensor == IMU_MONOCULAR || mSensor == IMU_STEREO)
             {
-                cv::Mat R = pKF->GetImuRotation().t();
+                // cv::Mat R = pKF->GetImuRotation().t();
+                // vector<float> q = Converter::toQuaternion(R);
+                // cv::Mat twb = pKF->GetImuPosition();
+
+                cv::Mat R = pKF->GetRotation();
                 vector<float> q = Converter::toQuaternion(R);
-                cv::Mat twb = pKF->GetImuPosition();
-                f << setprecision(6) << 1e9 * pKF->mTimeStamp << " " << setprecision(9) << twb.at<float>(0) << " " << twb.at<float>(1) << " " << twb.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+                cv::Mat t = pKF->GetCameraCenter();
+
+                cv::Mat Vw_imu = pKF->GetVelocity(); //imu frame
+
+                // f << setprecision(6) << 1e9 * pKF->mTimeStamp << "," << setprecision(9) << twb.at<float>(0) << "," << twb.at<float>(1) << "," << twb.at<float>(2) << ","
+                //   << q[3] << "," << q[0] << "," << q[1] << "," << q[2] << ","
+                //   << Vw.at<float>(0) << "," << Vw.at<float>(1) << "," << Vw.at<float>(2)
+                //   << endl; //qw xyz
+
+                f << setprecision(6) << 1e9 * pKF->mTimeStamp << "," << setprecision(9) << t.at<float>(0) << "," << t.at<float>(1) << "," << t.at<float>(2) << ","
+                  << q[3] << "," << q[0] << "," << q[1] << "," << q[2] << ","
+                  << Vw_imu.at<float>(0) << "," << Vw_imu.at<float>(1) << "," << Vw_imu.at<float>(2)
+                  << endl; //qw xyz
             }
             else
             {
                 cv::Mat R = pKF->GetRotation();
                 vector<float> q = Converter::toQuaternion(R);
                 cv::Mat t = pKF->GetCameraCenter();
-                f << setprecision(6) << 1e9 * pKF->mTimeStamp << " " << setprecision(9) << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+                cv::Mat Vw = pKF->GetVelocity();
+                f << setprecision(6) << 1e9 * pKF->mTimeStamp << "," << setprecision(9) << t.at<float>(0) << "," << t.at<float>(1) << "," << t.at<float>(2) << ","
+                  << q[3] << "," << q[0] << "," << q[1] << "," << q[2] << ","
+                  << Vw.at<float>(0) << "," << Vw.at<float>(1) << "," << Vw.at<float>(2)
+                  << endl; //qw xyz
             }
         }
         f.close();

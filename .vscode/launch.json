@@ -8,61 +8,10 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            // "program": "/home/wxm/Documents/code/ORB_SLAM3/Examples/Monocular/mono_euroc",
-            // "program": "/home/wxm/Documents/code/ORB_SLAM3/Examples/RGB-D/rgbd_tum",
-            // "program": "/home/wxm/Documents/code/ORB_SLAM3/Examples/Stereo/stereo_euroc",
-            "program": "/home/wxm/Documents/code/ORB_SLAM3/Examples/Monocular-Inertial/mono_inertial_euroc",
-            //V101_mono
-            // "args": [
-            //     "/home/wxm/Documents/code/ORB_SLAM3/Vocabulary/ORBvoc.bin",
-            //     "/home/wxm/sda2/codes/Kimera-VIO/data/V1_01_easy/mav0/EuRoC_mono_imu.yaml",
-            //     "/home/wxm/sda2/codes/Kimera-VIO/data/V1_01_easy/",
-            //     "/home/wxm/Documents/code/ORB_SLAM3/Examples/Stereo/EuRoC_TimeStamps/V101.txt"
-            // ],
-            //huawei_mono_euroc
-            // "args": [
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/Vocabulary/ORBvoc.txt",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/Huawei_bag_data/EuRoc2.yaml",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/Huawei_bag_data",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/Huawei_bag_data/mav0/timestamps.txt",
-            //     "dataset-Huawei_mono"
-            // ],
-            //huawei_mono_vi_euroc
-            // "args": [
-            //     "/home/wxm/Documents/code/ORB_SLAM3/Vocabulary/ORBvoc.bin",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/Huawei_bag_data/EuRoc2.yaml",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/Huawei_bag_data/",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/Huawei_bag_data/mav0/timestamps.txt"
-            // ],
-            //reno_normal_world  ------------------------------
+            "program": "/home/wxm/Documents/code/ORB_SLAM3/lib/test_api_node",
             "args": [
-                "/home/wxm/Documents/code/ORB_SLAM3/Vocabulary/ORBvoc.bin",
-                "/home/wxm/Documents/code/ORB_SLAM3/data/config/EuRoc2.yaml",
-                "/home/wxm/Documents/code/ORB_SLAM3/data/06_05_15_43_Circle/",
-                "/home/wxm/Documents/code/ORB_SLAM3/data/06_05_15_43_Circle/mav0/timestamps.txt"
+                "/home/wxm/Documents/code/ORB_SLAM3/lib/input_config.yaml",
             ],
-            //meizu_rgbd_tum
-            // "args": [
-            //     "/home/wxm/Documents/code/ORB_SLAM3/Vocabulary/ORBvoc.bin",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/meizu_bag_rgbd_data_60rgb_30depth/TUM1.yaml",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/meizu_bag_rgbd_data_60rgb_30depth/mav0/",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/meizu_bag_rgbd_data_60rgb_30depth/mav0/timestamp_sync.txt"
-            // ],
-            //meizu_mono_euroc
-            // "args": [
-            //     "/home/wxm/Documents/code/ORB_SLAM3/Vocabulary/ORBvoc.bin",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/meizu_bag_rgbd_data_60rgb_30depth/TUM1.yaml",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/meizu_bag_rgbd_data_60rgb_30depth/",
-            //     "/home/wxm/sda2/codes/ORB_SLAM3/data/huawei_bag/meizu_bag_rgbd_data_60rgb_30depth/mav0/timestamps.txt",
-            //     "dataset-meizu_mono"
-            // ],
-            //V1_01_easy_mono_imu ------------------------------
-            // "args": [
-            //     "/home/wxm/Documents/code/ORB_SLAM3/Vocabulary/ORBvoc.bin",
-            //     "/home/wxm/sda2/codes/Kimera-VIO/data/V1_01_easy/mav0/EuRoC_mono_imu.yaml",
-            //     "/home/wxm/sda2/codes/Kimera-VIO/data/V1_01_easy/",
-            //     "/home/wxm/Documents/code/ORB_SLAM3/Examples/Stereo/EuRoC_TimeStamps/V101.txt"
-            // ],
             "stopAtEntry": false,
             "cwd": "/home/wxm/Documents/code/ORB_SLAM3/data/output_logs/",
             "environment": [],

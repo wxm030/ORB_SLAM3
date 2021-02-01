@@ -79,7 +79,7 @@ namespace ORB_SLAM3
           output_poses_track_sparse_img_align_csv_("poses_track_sparse_img_align.csv"),
           output_init_imu_data_csv_("init_imu_data.csv") {}
 
-    void TrackingLogger::logTrackingPoseCSV(const std::int64_t &timestamp, const cv::Mat &pose)
+    void TrackingLogger::logTrackingPoseCSV(const std::int64_t &timestamp, const cv::Mat &pose, const cv::Mat &velocity)
     {
         // We log the poses in csv format for later alignement and analysis.
         std::ofstream &output_stream = output_poses_vio_csv_.ofstream_;
@@ -87,22 +87,25 @@ namespace ORB_SLAM3
         // First, write header, but only once.
         if (!is_header_written)
         {
-            output_stream << "#timestamp,x,y,z,qw,qx,qy,qz" << std::endl;
+            output_stream << "#timestamp,x,y,z,qw,qx,qy,qz,vx,vy,vz" << std::endl;
             is_header_written = true;
         }
-        if (!pose.empty())
+        if (!pose.empty() && !velocity.empty())
         {
             cv::Mat Rwc = pose.rowRange(0, 3).colRange(0, 3).t();
             cv::Mat twc = -Rwc * pose.rowRange(0, 3).col(3);
             std::vector<float> q = Converter::toQuaternion(Rwc);
-            output_stream << timestamp << ","        //
-                          << twc.at<float>(0) << "," //
-                          << twc.at<float>(1) << "," //
-                          << twc.at<float>(2) << "," //
-                          << q[0] << ","             // q_w
-                          << q[1] << ","             // q_x
-                          << q[2] << ","             // q_y
-                          << q[3]                    // q_z
+            output_stream << timestamp << ","             //
+                          << twc.at<float>(0) << ","      //
+                          << twc.at<float>(1) << ","      //
+                          << twc.at<float>(2) << ","      //
+                          << q[0] << ","                  // q_w
+                          << q[1] << ","                  // q_x
+                          << q[2] << ","                  // q_y
+                          << q[3] << ","                  // q_z
+                          << velocity.at<float>(0) << "," //vx
+                          << velocity.at<float>(1) << "," //vy
+                          << velocity.at<float>(2)        //vz
                           << std::endl;
         }
     }

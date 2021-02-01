@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
     else
     {
         SLAM.SaveTrajectoryEuRoC("CameraTrajectory.csv");
-        SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt");
+        SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.csv");
     }
 
     return 0;

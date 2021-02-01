@@ -1,0 +1,21 @@
+%YAML:1.0
+
+
+SensorType: MonoIMU #Mono; MonoIMU; StereoIMU; Stereo; RGBD
+
+start_t: 0.0 #30.0 #s 50
+end_t: 200.0 #80.0  #s
+#unsynchronization parameters t_imu = t_cam + timeshift
+Timeshift: 0.020768077 #0.020768077 #s  timeshift = td + 0.5 * rolling_shutter_tr
+#td: 0.004881379
+#rolling_shutter_tr: 0.031773397
+
+
+VocFilePath: /home/wxm/Documents/code/ORB_SLAM3/Vocabulary/ORBvoc.bin
+SettingFilePath: /home/wxm/Documents/code/ORB_SLAM3/data/config/EuRoc2.yaml
+DataSetPath: /home/wxm/Documents/code/ORB_SLAM3/data/06_05_15_20_Square
+DataTimestampTxtFile: /home/wxm/Documents/code/ORB_SLAM3/data/06_05_15_20_Square/mav0/timestamps.txt
+
+
+SaveLogLevel: 0 #0--Simple pipline  1--Verbose  2--Verbose with img save
+SaveLogDataPath: /home/wxm/Documents/code/ORB_SLAM3/data/output_logs

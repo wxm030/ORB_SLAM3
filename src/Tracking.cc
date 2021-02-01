@@ -1064,7 +1064,7 @@ namespace ORB_SLAM3
         mCurrentFrame.mnDataset = mnNumDataset;
 
         Track();
-        logger_->logTrackingPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw);
+        logger_->logTrackingPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw, mVelocity);
         logger_->logScaleValueCSV(mCurrentFrame.mTimeStamp * 1e9, mpLocalMapper->mScale);
 
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -1120,7 +1120,7 @@ namespace ORB_SLAM3
         mCurrentFrame.mnDataset = mnNumDataset;
 
         Track();
-        logger_->logTrackingPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw);
+        logger_->logTrackingPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw, mVelocity);
         logger_->logScaleValueCSV(mCurrentFrame.mTimeStamp * 1e9, mpLocalMapper->mScale);
 
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -1184,7 +1184,7 @@ namespace ORB_SLAM3
 
         lastID = mCurrentFrame.mnId;
         Track();
-        logger_->logTrackingPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw);
+        logger_->logTrackingPoseCSV(mCurrentFrame.mTimeStamp * 1e9, mCurrentFrame.mTcw, mVelocity);
         logger_->logScaleValueCSV(mCurrentFrame.mTimeStamp * 1e9, mpLocalMapper->mScale);
 
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -1622,7 +1622,8 @@ namespace ORB_SLAM3
                 }
                 else
                 {
-                    MonocularInitialization();
+                    //MonocularInitialization();
+                    MonocularInitializationDirect();
                 }
             }
 
@@ -1709,7 +1710,6 @@ namespace ORB_SLAM3
                 }
                 else
                 {
-
                     if (mState == RECENTLY_LOST)
                     {
                         Verbose::PrintMess("Lost for a short time", Verbose::VERBOSITY_NORMAL);
@@ -1904,6 +1904,7 @@ namespace ORB_SLAM3
                 }
                 if (!bOK)
                 {
+                    //Todo 视觉跟踪失败，则应该直接进行IMU跟踪，
                     cout << "Fail to track local map!" << endl;
                 }
             }
@@ -1919,6 +1920,7 @@ namespace ORB_SLAM3
                         bOK = TrackLocalMapDirectXiang();
                         if (!bOK)
                         {
+                            std::cout << "TrackLocalMapDirect not OK ,,, TrackLocalMap() ===================== " << std::endl;
                             // Track local map 数量少，可能是前一步位姿估计的不准，也可能是视觉上匹配的就是太少
                             // clear the features and try search in local map
                             mCurrentFrame.N = 0;
@@ -1938,7 +1940,6 @@ namespace ORB_SLAM3
                                 bOK = TrackWithMotionModel();
                                 // bOK = TrackReferenceKeyFrame();
                             }
-                            std::cout << "TrackLocalMapDirect not OK ,,, TrackLocalMap() ===================== " << std::endl;
                             bOK = TrackLocalMap();
                             if (bOK == false)
                             {
@@ -1960,7 +1961,7 @@ namespace ORB_SLAM3
                 if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO)
                 {
                     Verbose::PrintMess("Track lost for less than one second...", Verbose::VERBOSITY_NORMAL);
-                    if (!pCurrentMap->isImuInitialized() || !pCurrentMap->GetIniertialBA2())
+                    if (!pCurrentMap->isImuInitialized() || !pCurrentMap->GetIniertialBA1()) //|| !pCurrentMap->GetIniertialBA2()
                     {
                         cout << "IMU is not or recently initialized. Reseting active map..." << endl;
                         mpSystem->ResetActiveMap();
@@ -3445,6 +3446,7 @@ namespace ORB_SLAM3
     void Tracking::SearchLocalPointsDirect()
     {
         int cntSuccess = 0;
+        int cntFailed = 0;
         // use grid to evaluate the coverage of feature points
         const int grid_size = mpORBextractorLeft->GetGridSize();
         const int grid_rows = ceil(static_cast<double>(mCurrentFrame.mvImagePyramid[0].rows) / grid_size);
@@ -3521,11 +3523,12 @@ namespace ORB_SLAM3
                 {
                     // 一次都没匹配上
                     iter = mvpDirectMapPointsCache.erase(iter);
+                    cntFailed++;
                 }
             }
         }
         std::cout << "mvpDirectMapPointsCache after2222 === " << mvpDirectMapPointsCache.size() << "   mvpLocalMapPoints.size() = " << mvpLocalMapPoints.size() << std::endl;
-        std::cout << "cntSuccess == " << cntSuccess << ",  mvpDirectMapPointsCache.size() == " << mvpDirectMapPointsCache.size() << std::endl;
+        std::cout << "cntSuccess == " << cntSuccess << ",  mvpDirectMapPointsCache.size() == " << mvpDirectMapPointsCache.size() << ",cntFailed  ==" << cntFailed << std::endl;
         if (cntSuccess > mnCacheHitTh)
         {
             // 从缓存中就得到了足够的匹配点，直接返回
@@ -3771,7 +3774,8 @@ namespace ORB_SLAM3
 
         std::cout << "Nedd new keyframe c1a  ==================== " << c1a << "," << c1b << "," << c1c << "," << c2 << "," << c3 << "," << c4 << std::endl;
 
-        if (((c1a || c1b || c1c) && c2) || c3 || c4)
+        // if (((c1a || c1b || c1c) && c2) || c3 || c4)
+        if (((c1a || c1b || c1c || c4) && c2) || c3)
         {
             // If the mapping accepts keyframes, insert keyframe.
             // Otherwise send a signal to interrupt BA
