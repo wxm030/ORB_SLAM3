@@ -1,0 +1,96 @@
+%YAML:1.0
+
+#common parameters
+imu_topic: "/imu0"
+image_topic: "/cam0/image_raw"
+output_path: "/vinsMono_ws/log/"
+
+#camera calibration
+model_type: PINHOLE
+camera_name: camera
+image_width: 640
+image_height: 480
+distortion_parameters:
+  k1: 0.03372367567425876
+  k2: -0.057104149775425765
+  p1: -2.5322798789003986e-05
+  p2: 6.47471228357412e-05
+projection_parameters:
+  cx: 318.276777941914
+  cy: 239.78473942934076
+  fx: 489.50477467729837
+  fy: 489.42863894645575
+
+# Extrinsic parameter between IMU and Camera.
+estimate_extrinsic: 0
+
+
+
+#Rotation from camera frame to imu frame, imu^R_cam
+extrinsicRotation_inv: !!opencv-matrix
+  cols: 3
+  data: [-0.0018398560689410432, -0.9999939382820646, 0.0029560664356526522, -0.9999833675812337,
+    0.0018559790881973355, 0.005460760251027382, -0.0054662135469269214, -0.002945970256228909,
+    -0.9999807206985086]
+  dt: d
+  rows: 3
+#Translation from imu frame to camera frame, cam^T_imu
+extrinsicTranslation_inv: !!opencv-matrix
+  cols: 1
+  data: [-0.01426059, -0.01169266, -0.00756007]
+  dt: d
+  rows: 3
+#Rotation from imu frame to camera frame, cam^R_imu
+extrinsicRotation: !!opencv-matrix
+  cols: 3
+  data: [-0.0018398560689410432, -0.9999833675812337, -0.0054662135469269214, -0.9999939382820646,
+    0.0018559790881973355, -0.002945970256228909, 0.0029560664356526522, 0.005460760251027382,
+    -0.9999807206985086]
+  dt: d
+  rows: 3
+#Translation from camera frame to imu frame, imu^T_cam
+extrinsicTranslation: !!opencv-matrix
+  cols: 1
+  data: [-0.011760027912890285, -0.014261073965235434, -0.007453918182722793]
+  dt: d
+  rows: 3
+
+#feature traker paprameters
+max_cnt: 150
+min_dist: 30
+freq: 10
+F_threshold: 1.0
+show_track: 1
+equalize: 1
+fisheye: 0
+
+#optimization parameters
+max_solver_time: 0.04
+max_num_iterations: 8
+keyframe_parallax: 10.0
+
+#imu parameters
+acc_n: 0.1261270459827141
+gyr_n: 0.014397373270798864
+acc_w: 0.0003184301813180432
+gyr_w: 7.483830490741692e-05
+g_norm: 9.81007
+
+#loop closure parameters
+loop_closure: 0
+load_previous_pose_graph: 0
+fast_relocalization: 0
+pose_graph_save_path: "/vinsMono_ws/log/"
+
+#unsynchronization parameters
+estimate_td: 0
+td: 0.004881379
+
+#rolling shutter parameters
+rolling_shutter: 1
+rolling_shutter_tr: 0.031773397
+
+#visualization parameters
+save_image: 1
+visualize_imu_forward: 0
+visualize_camera_size: 0.4

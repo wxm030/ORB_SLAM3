@@ -13,8 +13,8 @@
 struct IMU_DATA
 {
     double timestamp;
-    std::array<float, 3> acc;
-    std::array<float, 3> gyr;
+    std::array<double, 3> acc;
+    std::array<double, 3> gyr;
 };
 
 /**

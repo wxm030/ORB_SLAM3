@@ -28,6 +28,7 @@ SLAMResult ProcessImageMonoIMU(void *slam_handle, ImageDATA &image_data, std::ve
 {
     SLAMResult result;
 
+    std::cout <<"imu.size() == "<< imu.size() <<std::endl;
     std::vector<ORB_SLAM3::IMU::Point> vecImuMes;
     for (int i = 0; i < imu.size(); i++)
     {

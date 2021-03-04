@@ -1,0 +1,135 @@
+%YAML:1.0
+
+
+Camera_start_t: 0.0 #30.0 #s 50
+Camera_end_t: 200.0 #80.0  #s
+#unsynchronization parameters t_imu = t_cam + timeshift
+Timeshift: 0.020768077 #0.020768077 #s  timeshift = td + 0.5 * rolling_shutter_tr
+#td: 0.004881379
+#rolling_shutter_tr: 0.031773397
+
+
+#--------------------------------------------------------------------------------------------
+# Camera Parameters. Adjust them!
+#--------------------------------------------------------------------------------------------
+Camera.type: "PinHole"
+
+# Camera calibration and distortion parameters (OpenCV) 
+Camera.fx: 489.50477467729837
+Camera.fy: 489.42863894645575
+Camera.cx: 318.276777941914
+Camera.cy: 239.78473942934076
+
+Camera.k1: 0.03372367567425876
+Camera.k2: -0.057104149775425765
+Camera.p1: -2.5322798789003986e-05
+Camera.p2: 6.47471228357412e-05
+
+# Camera resolution
+Camera.width: 640
+Camera.height: 480
+
+# Camera frames per second 
+Camera.fps: 30.0
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 1
+
+# Transformation from camera to body-frame (imu)
+Tbc: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: f
+   data: [-0.0018398560689410432, -0.9999939382820646, 0.0029560664356526522, -0.01426059,
+         -0.9999833675812337,0.0018559790881973355, 0.005460760251027382, -0.01169266,
+         -0.0054662135469269214, -0.002945970256228909,-0.9999807206985086, -0.00756007,
+         0.0, 0.0, 0.0, 1.0]
+
+# IMU noise
+# continuous model noise
+#IMU.NoiseGyro: 9.0060000000000002e-05 #1.6968e-04 
+#IMU.NoiseAcc: 0.001473055 #2.0e-3
+#IMU.GyroWalk: 2.1891920000000001e-05
+#IMU.AccWalk: 0.0016205105999999999 # 3e-03
+#IMU.Frequency: 100
+
+IMU.NoiseGyro: 9.0e-05
+IMU.NoiseAcc: 0.0008745
+IMU.GyroWalk: 0.0001079
+IMU.AccWalk: 0.000918493
+IMU.Frequency: 208
+
+#bias
+#IMU.Bias_wx: 0.000183347498462687
+#IMU.Bias_wy: -0.000202559941691255
+#IMU.Bias_wz: -0.000600474037882891
+#IMU.Bias_ax: -0.010776505737082
+#IMU.Bias_ay: -0.113284159772654
+#IMU.Bias_az: -0.0339709444886733
+#IMU.Bias_wx: -0.004
+#IMU.Bias_wy: -0.0015
+#IMU.Bias_wz: -0.012
+#IMU.Bias_ax: 0.165
+#IMU.Bias_ay: -0.05
+#IMU.Bias_az: -0.22
+
+#IMU.Bias_wx: 0.0034846148835837943
+#IMU.Bias_wy: 0.010798019810901362
+#IMU.Bias_wz: 0.029062881375811041
+#IMU.Bias_ax: 0.090057461959824101
+#IMU.Bias_ay: 0.17379261754407893
+#IMU.Bias_az: 0.020827386673560953
+
+#rectify by scale-misalignment model
+IMU.Bias_wx: 3.0950101775696988e-05
+IMU.Bias_wy: 0.006012689046254651
+IMU.Bias_wz:  0.029800951457269294
+IMU.Bias_ax: -0.11697233605889579
+IMU.Bias_ay: 0.15606173897170653
+IMU.Bias_az:  0.088843086119782741
+
+
+#--------------------------------------------------------------------------------------------
+# ORB Parameters
+#--------------------------------------------------------------------------------------------
+
+# front-end  use direct method to match or not
+UseDirectSVO: 1
+
+# ORB Extractor: Number of features per image
+ORBextractor.nFeatures: 1000 # only for orb extract method
+
+# ORB Extractor: Scale factor between levels in the scale pyramid 	
+ORBextractor.scaleFactor: 1.2 # float type
+
+# ORB Extractor: Number of levels in the scale pyramid	
+# img_pyr_level = max(n_pyr_levels, klt_max_level+1)
+ORBextractor.n_pyr_levels: 8 #feature extract level
+
+#for direct method
+ORBextractor.klt_max_level: 7 # sparse image align param
+ORBextractor.klt_min_level: 1 # sparse image align param
+ORBextractor.grid_size: 5 # for track local map direct method  and for fast extract grid size
+ORBextractor.mnCacheHitTh: 150 #for track local map direct mechod
+
+# ORB Extractor: Fast threshold
+# Image is divided in a grid. At each cell FAST are extracted imposing a minimum response.
+# Firstly we impose iniThFAST. If no corners are detected we impose a lower value minThFAST
+# You can lower these values if your images have low contrast			
+ORBextractor.iniThFAST: 20
+ORBextractor.minThFAST: 7
+
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters
+#--------------------------------------------------------------------------------------------
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3
+Viewer.ViewpointX: 0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -3.5 # -1.8
+Viewer.ViewpointF: 500
+

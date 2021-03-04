@@ -115,6 +115,8 @@ void TestApi::ProcessMonoImu(void *slam_handle)
                 first_imu++;
             }
         }
+
+        std::cout << "vImuMeas.size() == " << vImuMeas.size() << std::endl;
         SLAMResult result = ProcessImageMonoIMU(slam_handle, imgdata, vImuMeas); //imu and camra data  is sync
     }
 }

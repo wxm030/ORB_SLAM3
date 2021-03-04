@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "/home/wxm/Documents/code/ORB_SLAM3/lib/test_api_node",
             "args": [
-                "/home/wxm/Documents/code/ORB_SLAM3/lib/input_config.yaml",
+                "/home/wxm/Documents/code/ORB_SLAM3/lib/input_config.yaml"
             ],
             "stopAtEntry": false,
             "cwd": "/home/wxm/Documents/code/ORB_SLAM3/data/output_logs/",
